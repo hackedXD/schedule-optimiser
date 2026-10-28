@@ -1,0 +1,12 @@
+/impeccable init
+
+Build a schedule optimiser which given a set of classes / constraints, builds all possible schedules which satisfy that set of constraints, then sorts it by the following list of in built criteria. The ordering of this set of criteria can be modifiable in the app.
+
+List of requirements
+The FCE rating of the teacher for that class
+The start time (pushing for the latest start times as possible)
+Ample time between classes
+End time
+
+an example input into the app could be
+21-241, 18-213, 15-150, 49-101, and pick 1 of (17-200, 10-335, 73-102)
