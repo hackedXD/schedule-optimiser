@@ -7,7 +7,7 @@ import { move, useRowDrag } from './CriteriaPanel.tsx'
 import type { AppState } from '../state.ts'
 import { EXAMPLE, newId } from '../state.ts'
 
-type DetailStatus = 'loading' | 'missing' | 'unavailable' | undefined
+export type DetailStatus = 'loading' | 'missing' | 'unavailable' | undefined
 
 interface Props {
   catalog: Catalog
@@ -92,7 +92,7 @@ function OfferingRow({ o, state, update }: { o: Offering; state: AppState; updat
   )
 }
 
-function About({ detail, status, code, semester }: { detail: CourseDetail | undefined; status: DetailStatus; code: string; semester: string | null }) {
+export function About({ detail, status, code, semester }: { detail: CourseDetail | undefined; status: DetailStatus; code: string; semester: string | null }) {
   const [more, setMore] = useState(false)
   if (!detail) {
     return (

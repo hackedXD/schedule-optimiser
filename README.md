@@ -68,7 +68,7 @@ hand-placed from the campus map.
 
 A pick-N group can be **Equal** (options interchangeable) or **Ranked** (drag
 options into preference order; the Group preference criterion then applies).
-Clicking a block on the weekly grid opens that course's SOC details page.
+Clicking a block on the weekly grid opens an in-app details dialog for that course, with a link to its SOC page.
 
 ## Engine
 

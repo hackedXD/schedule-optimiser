@@ -39,9 +39,9 @@ export function WeekGrid({ schedule, catalog, colorOf, onBlockClick }: Props) {
             const course = catalog.courses[o.course]
             return (
               <button key={`${o.id}-${i}`} type="button" className={`block${short ? ' short' : ''}${b.slot.mini ? ' mini' : ''}`} data-mini={b.slot.mini ? `m${b.slot.mini}` : undefined}
-                onClick={() => onBlockClick?.(o.course)} aria-label={`${displayCode(o.course)} ${o.label}: open the SOC course details page`}
+                onClick={() => onBlockClick?.(o.course)} aria-label={`${displayCode(o.course)} ${o.label}: show course details`}
                 style={{ top: `calc(${pct(b.start)}% + 1px)`, height: `calc(${pct(b.end) - pct(b.start)}% - 2px)`, '--c-fg': c.fg, '--c-bg': c.bg, '--c-border': c.border } as React.CSSProperties}
-                title={`${displayCode(o.course)} ${o.label} · ${formatClock(b.start)}–${formatClock(b.end)}${course ? ` · ${course.title}` : ''} — click for the SOC details page`}>
+                title={`${displayCode(o.course)} ${o.label} · ${formatClock(b.start)}–${formatClock(b.end)}${course ? ` · ${course.title}` : ''} — click for details`}>
                 <div className="code"><span>{displayCode(o.course)}</span><span className="lbl">{b.slot.kind === 'section' ? `Sec ${b.slot.offerings.map((x) => x.label).join('/')}` : o.label}</span></div>
                 <div className="time">{formatClock(b.start)}–{formatClock(b.end)}</div>
                 {course && long && <div className="title">{course.title}</div>}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Catalog, CourseDetail, Request } from './engine/index.ts'
-import { conflictingPairs, detailUrl, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
+import { conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
 import { defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
@@ -12,6 +12,7 @@ import { RankHead } from './components/RankHead.tsx'
 import { Register } from './components/Register.tsx'
 import { ResultsList } from './components/ResultsList.tsx'
 import { Icon } from './components/Icon.tsx'
+import { CourseDialog } from './components/CourseDialog.tsx'
 
 const PITTSBURGH = 'Pittsburgh, Pennsylvania'
 const EMPTY_CATALOG: Catalog = { semester: '', runDate: '', courses: {} }
@@ -23,6 +24,7 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [dialogCode, setDialogCode] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, CourseDetail>>({})
   const [detailStatus, setDetailStatus] = useState<Record<string, 'loading' | 'missing' | 'unavailable'>>({})
 
@@ -175,10 +177,14 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="grid-wrap"><WeekGrid schedule={selected} catalog={catalog} colorOf={colorOf} onBlockClick={(code) => { if (semester) window.open(detailUrl(code, semester), '_blank', 'noopener') }} /></div>
+          <div className="grid-wrap"><WeekGrid schedule={selected} catalog={catalog} colorOf={colorOf} onBlockClick={setDialogCode} /></div>
         )}
         <Register schedule={selected} colorOf={colorOf} />
       </main>
+
+      <CourseDialog code={dialogCode} catalog={catalog} slots={selected && dialogCode ? selected.slots.filter((sl) => sl.course === dialogCode) : []}
+        detail={dialogCode ? detailFor(dialogCode) : undefined} status={dialogCode && semester ? detailStatus[`${semester}:${dialogCode}`] : undefined}
+        semester={semester} color={colorOf(dialogCode ?? '')} onClose={() => setDialogCode(null)} />
 
       <aside className="panel right" aria-label="Ranked schedules">
         <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={result?.truncated ?? false} explored={result?.explored ?? 0} />
