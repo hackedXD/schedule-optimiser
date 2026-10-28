@@ -1,4 +1,4 @@
-/** Eight muted course hues. Index by position of the course in the request. */
+/** Eight ANSI-style course hues. Index by position of the course in the request. */
 export const COURSE_HUES = [
   { name: 'cyan', h: 191, s: 90, l: 70 },
   { name: 'magenta', h: 326, s: 100, l: 74 },

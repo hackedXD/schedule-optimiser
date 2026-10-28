@@ -47,7 +47,7 @@ body {
   caret-color: var(--accent);
   accent-color: var(--accent);
 }
-::selection { background: rgb(110 156 245 / 0.35); color: var(--text-1); }
+::selection { background: rgb(78 227 138 / 0.3); color: var(--text-1); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; padding: 0; cursor: pointer; }
 button:disabled { cursor: default; }
