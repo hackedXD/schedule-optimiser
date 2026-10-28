@@ -44,7 +44,9 @@ export interface Catalog {
 export interface ChoiceGroup {
   id: string
   pick: number
+  /** In display order; when `ranked`, earlier options are preferred. */
   options: string[]
+  ranked?: boolean
 }
 
 export interface Request {
@@ -76,7 +78,7 @@ export interface Schedule {
   slots: Slot[]
 }
 
-export type CriterionId = 'fce' | 'start' | 'gap' | 'end'
+export type CriterionId = 'fce' | 'start' | 'gap' | 'end' | 'pref' | 'path'
 
 export interface Criterion {
   id: CriterionId
@@ -86,7 +88,7 @@ export interface Criterion {
   direction: string
   /** Band width in the criterion's unit; values within one band tie. */
   tolerance: number
-  unit: 'rating' | 'minutes'
+  unit: 'rating' | 'minutes' | 'rank' | 'metres'
 }
 
 /** Manual ratings keyed by course code or offering id, 1..5. */
@@ -101,6 +103,20 @@ export interface Scores {
   start: number
   gap: number
   end: number
+  /** Sum of option positions in ranked groups (0 = every ranked group got its first choice). null when no group is ranked. */
+  pref: number | null
+  /** Estimated walking metres per week between consecutive buildings (and the dorm, when set). null when no building is known. */
+  path: number | null
+}
+
+/** What the ranker needs beyond the schedules themselves. */
+export interface RankContext {
+  ratings: Ratings
+  groups: ChoiceGroup[]
+  /** Building code for a course, or undefined when unknown. */
+  buildingOf: (course: string) => string | undefined
+  /** Dorm/building code the day starts and ends at, or null. */
+  dorm: string | null
 }
 
 export interface RankedSchedule extends Schedule {

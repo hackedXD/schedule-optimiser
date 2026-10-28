@@ -1,13 +1,13 @@
 /** Eight muted course hues. Index by position of the course in the request. */
 export const COURSE_HUES = [
-  { name: 'blue', h: 222, s: 80, l: 68 },
-  { name: 'violet', h: 268, s: 70, l: 70 },
-  { name: 'teal', h: 172, s: 55, l: 55 },
-  { name: 'amber', h: 38, s: 85, l: 62 },
-  { name: 'rose', h: 345, s: 70, l: 68 },
-  { name: 'lime', h: 95, s: 50, l: 58 },
-  { name: 'orange', h: 20, s: 80, l: 64 },
-  { name: 'cyan', h: 195, s: 70, l: 60 },
+  { name: 'cyan', h: 191, s: 90, l: 70 },
+  { name: 'magenta', h: 326, s: 100, l: 74 },
+  { name: 'yellow', h: 65, s: 92, l: 76 },
+  { name: 'orange', h: 31, s: 100, l: 71 },
+  { name: 'purple', h: 265, s: 89, l: 78 },
+  { name: 'red', h: 0, s: 100, l: 70 },
+  { name: 'blue', h: 216, s: 100, l: 70 },
+  { name: 'green', h: 135, s: 94, l: 65 },
 ]
 
 export function courseColor(index: number): { fg: string; bg: string; border: string } {

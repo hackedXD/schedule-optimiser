@@ -45,15 +45,18 @@ export function parseDetailHtml(html: string, fallbackCode = ''): CourseDetail |
   const tableEnd = html.indexOf('</table>')
   const table = tableEnd > 0 ? html.slice(0, tableEnd) : html
   let lecture: string | null = null
+  let lectureLocation = ''
   for (const row of table.split('</tr>')) {
     const cells = [...row.matchAll(/<td[^>]*>(.*?)<\/td>/gis)].map((m) => text(m[1]))
     if (cells.length < 8) continue
     const label = cells[2]
     const mini = cells[3]
+    const location = cells[7]
     if (!label) continue
-    if (/^lec/i.test(label)) lecture = label
+    if (/^lec/i.test(label)) { lecture = label; lectureLocation = location }
     else {
-      if (lecture) pairing[label] = lecture
+      // Sections follow their lecture on the page; a section at another campus is not that lecture's.
+      if (lecture && location === lectureLocation) pairing[label] = lecture
       if (mini === '3' || mini === '4') minis[label] = Number(mini) as Mini
     }
   }

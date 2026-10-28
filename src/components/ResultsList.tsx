@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CriterionId, RankedSchedule } from '../engine/index.ts'
 import { CRITERIA, displayCode } from '../engine/index.ts'
-import { formatScore } from './RankHead.tsx'
+import { formatScore, formatScoreCompact } from './RankHead.tsx'
 
 interface Props {
   ranked: RankedSchedule[]
@@ -63,16 +63,17 @@ export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, trun
         <h2>Schedules</h2>
         <span className="count num">{ranked.length.toLocaleString()}</span>
       </div>
-      <div className="results-cols" aria-hidden="true">
+      <div className="results-cols" aria-hidden="true" style={{ gridTemplateColumns: `34px repeat(${order.length}, minmax(0, 1fr))` }}>
         <span />
         {order.map((id, i) => <span className={`c${i === 0 ? ' lead' : ''}`} key={id}>{CRITERIA.find((c) => c.id === id)!.short}</span>)}
       </div>
       <div className="results" ref={listRef} role="listbox" aria-label="Ranked schedules">
         {visible.map((s) => (
           <button key={s.id} data-id={s.id} role="option" aria-selected={s.id === selectedId}
-            className={`result${s.id === selectedId ? ' selected' : ''}${moved.has(s.id) ? ' moved' : ''}`} onClick={() => onSelect(s.id)}>
+            className={`result${s.id === selectedId ? ' selected' : ''}${moved.has(s.id) ? ' moved' : ''}`} onClick={() => onSelect(s.id)}
+            style={{ gridTemplateColumns: `34px repeat(${order.length}, minmax(0, 1fr))` }}>
             <span className="r num">{s.rank}</span>
-            {order.map((id, i) => { const v = formatScore(id, s.scores); return <span key={id} className={`v num${i === 0 ? ' lead' : ''}${v.none ? ' none' : ''}`} title={id === 'fce' && v.sub ? `${v.sub} sections rated` : undefined}>{v.text}{v.sub && <span className="sub">{v.sub}</span>}</span> })}
+            {order.map((id, i) => { const v = formatScoreCompact(id, s.scores); const full = formatScore(id, s.scores); return <span key={id} className={`v num${i === 0 ? ' lead' : ''}${v.none ? ' none' : ''}`} title={`${full.text}${full.sub ? ` (${full.sub} rated)` : ''}`}>{v.text}</span> })}
             <span className="codes">
               {s.courses.map((c) => {
                 const parts = s.slots.filter((sl) => sl.course === c).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'lecture' ? -1 : 1))

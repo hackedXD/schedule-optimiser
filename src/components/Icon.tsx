@@ -20,6 +20,8 @@ const PATHS: Record<string, string> = {
   star: 'M8 2.5l1.7 3.6 3.9.5-2.9 2.7.8 3.9L8 11.3l-3.5 1.9.8-3.9L2.4 6.6l3.9-.5z',
   sliders: 'M3 5h6M11 5h2M3 11h2M7 11h6M9 3.5v3M5 9.5v3',
   enter: 'M13 3v5a2 2 0 01-2 2H3M6 7l-3 3 3 3',
+  equal: 'M3 6h10M3 10h10',
+  external: 'M7 3H3v10h10V9M9 3h4v4M13 3L7 9',
 }
 
 export function Icon({ name, size = 16, ...rest }: { name: keyof typeof PATHS | string; size?: number } & SVGProps<SVGSVGElement>) {

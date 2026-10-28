@@ -11,6 +11,10 @@ export interface AppState {
   pinned: string[]
   pittsburghOnly: boolean
   includeMini: boolean
+  /** Course code -> building code override for walking estimates. */
+  buildings: Record<string, string>
+  /** Dorm code the day starts and ends at, or null. */
+  dorm: string | null
 }
 
 export const EXAMPLE: Pick<AppState, 'required' | 'groups'> = {
@@ -27,6 +31,8 @@ export const INITIAL: AppState = {
   pinned: [],
   pittsburghOnly: true,
   includeMini: true,
+  buildings: {},
+  dorm: null,
 }
 
 const KEY = 'schedule-optimiser.v1'
@@ -36,9 +42,9 @@ function load(): AppState {
     const raw = localStorage.getItem(KEY)
     if (!raw) return INITIAL
     const parsed = JSON.parse(raw) as Partial<AppState>
-    const order = Array.isArray(parsed.order) && parsed.order.length === DEFAULT_ORDER.length && DEFAULT_ORDER.every((c) => parsed.order!.includes(c))
-      ? parsed.order
-      : [...DEFAULT_ORDER]
+    // Keep the saved order, drop unknown ids, append criteria added since.
+    const saved = Array.isArray(parsed.order) ? parsed.order.filter((c) => DEFAULT_ORDER.includes(c)) : []
+    const order = [...saved, ...DEFAULT_ORDER.filter((c) => !saved.includes(c))]
     return { ...INITIAL, ...parsed, order }
   } catch {
     return INITIAL

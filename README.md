@@ -58,6 +58,17 @@ near-ties fall through to the next criterion.
 | Start time | mean first-class start over days with classes | later |
 | Time between classes | shortest break between consecutive classes in the week | longer |
 | End time | mean last-class end over days with classes | earlier |
+| Group preference | positions of the chosen options in groups you marked Ranked | earlier options |
+| Walking | estimated metres per week between consecutive buildings, from and to your dorm when set | less |
+
+Walking is an estimate: SOC publishes no rooms for an upcoming semester, so
+each course is placed in its department's usual building (`src/campus.ts`),
+which you can override per course in its expanded row. Coordinates are
+hand-placed from the campus map.
+
+A pick-N group can be **Equal** (options interchangeable) or **Ranked** (drag
+options into preference order; the Group preference criterion then applies).
+Clicking a block on the weekly grid opens that course's SOC details page.
 
 ## Engine
 

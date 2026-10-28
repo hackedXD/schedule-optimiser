@@ -39,11 +39,13 @@ Exhaustive enumeration with a user-reorderable priority list. Unlike picking sec
 Confirmed:
 - Input: a list of required course codes and zero or more choice groups of the form "pick N of [codes]". The canonical example: `21-241, 18-213, 15-150, 49-101`, and pick 1 of `17-200, 10-335, 73-102`.
 - Enumeration: every combination of one lecture (where a course has lectures) and one section (where a course has sections) per course, across all choice-group selections, filtered to combinations with no time overlap on any shared day.
-- Ranking by four built-in criteria whose order the student can rearrange in the app:
+- Ranking by six built-in criteria whose order the student can rearrange in the app (the last two added 28-Oct-2026):
   1. FCE rating of the instructor for that class (higher is better).
   2. Start time: later daily starts are better.
   3. Ample time between classes: breathing room between consecutive meetings is better than back-to-back.
   4. End time: earlier daily ends are better (the brief lists "end time" without a direction; earlier is assumed and must be confirmable).
+  5. Group preference: a pick-N group can be marked Ranked, and schedules that take earlier-listed options rank higher. Equal groups contribute nothing.
+  6. Walking ("pathing"): estimated metres per week between consecutive classes' buildings, from and to a chosen dorm when set. SOC publishes no rooms before the semester, so each course is placed in its department's usual building (`src/campus.ts`, hand-placed coordinates) unless the student overrides the building per course. The estimate is labelled as such in the UI.
 - FCE is on hold. The criterion remains in the list and is live, fed by ratings the student types in manually. Because the export has no instructor, manual ratings attach to a course or to a specific lecture/section label. Unrated items are treated as neutral so the criterion never penalises missing data.
 - Terminology: "course" (e.g. 15-150), "lecture" (Lec, Lec 1…), "section" (A, B…), "meeting" (one days+time block), "schedule" (one complete, conflict-free pick).
 
@@ -56,7 +58,7 @@ Open decisions (recorded, not invented):
 ## Brand Commitments
 
 - Visual direction (chosen 28-Oct-2026): the category standard for a scheduler, executed at the craft level of Linear. Inputs panel, a Monday-to-Friday weekly grid with coloured course blocks, a ranked results list. Familiar on purpose.
-- Voice: a coding / technical, monospace-led typographic feel. Monospace is the product's own language here (course codes, section labels, times, ranks), not a costume.
+- Voice (revised 28-Oct-2026 at the user's request): a fully technical, terminal register. Near-black ground, phosphor-green accent, ANSI-style course colours, JetBrains Mono for every piece of text. Monospace is the product's own language here (course codes, section labels, times, ranks), not a costume.
 - No name, logo, or copy assets exist yet. "Schedule Optimiser" is the working name.
 
 ## Evidence on Hand

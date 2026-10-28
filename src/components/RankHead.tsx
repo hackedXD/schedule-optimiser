@@ -8,7 +8,31 @@ export function formatScore(id: CriterionId, s: Scores): { text: string; none: b
     case 'start': return { text: formatClock(Math.round(s.start)), none: false }
     case 'gap': return s.gap === Infinity ? { text: 'none', none: true } : { text: formatDuration(s.gap), none: false }
     case 'end': return { text: formatClock(Math.round(s.end)), none: false }
+    case 'pref': return s.pref === null ? { text: '—', none: true } : { text: s.pref === 0 ? '1st' : `+${s.pref}`, none: false }
+    case 'path': return s.path === null ? { text: '—', none: true } : { text: `${(s.path / 1000).toFixed(1)} km`, none: false }
   }
+}
+
+/** Short forms for the results list columns. */
+export function formatScoreCompact(id: CriterionId, s: Scores): { text: string; none: boolean } {
+  const clock = (m: number) => formatClock(Math.round(m)).replace(':00', '').replace(' AM', 'a').replace(' PM', 'p')
+  switch (id) {
+    case 'fce': return s.fce === null ? { text: '—', none: true } : { text: s.fce.toFixed(1), none: false }
+    case 'start': return { text: clock(s.start), none: false }
+    case 'end': return { text: clock(s.end), none: false }
+    case 'gap': return s.gap === Infinity ? { text: '—', none: true } : { text: s.gap >= 60 ? `${Math.floor(s.gap / 60)}h${s.gap % 60 ? String(Math.round(s.gap % 60)).padStart(2, '0') : ''}` : `${Math.round(s.gap)}m`, none: false }
+    case 'pref': return s.pref === null ? { text: '—', none: true } : { text: s.pref === 0 ? '1st' : `+${s.pref}`, none: false }
+    case 'path': return s.path === null ? { text: '—', none: true } : { text: `${(s.path / 1000).toFixed(1)}k`, none: false }
+  }
+}
+
+export const SCORE_TITLES: Record<CriterionId, string> = {
+  fce: 'Mean manual FCE rating over sections; unrated sections count as neutral',
+  start: 'Mean first-class start across days with classes',
+  gap: 'Shortest break between consecutive classes in the week',
+  end: 'Mean last-class end across days with classes',
+  pref: 'Positions of the chosen options in ranked groups: 1st means every ranked group got its first choice',
+  path: 'Estimated walking per week between buildings (department estimate unless you set a building), from and to your dorm when set',
 }
 
 interface Props {
@@ -25,16 +49,15 @@ export function RankHead({ schedule, total, order, onStep }: Props) {
         {schedule ? (<><span>#{schedule.rank}</span><span className="of">of {total.toLocaleString()}</span></>) : <span className="faint">No schedule</span>}
       </div>
       <div className="nav">
-        <button className="icon-btn" title="Previous (↑)" aria-label="Previous schedule" disabled={!schedule || schedule.rank <= 1} onClick={() => onStep(-1)}><Icon name="chevronLeft" size={14} /></button>
-        <button className="icon-btn" title="Next (↓)" aria-label="Next schedule" disabled={!schedule || schedule.rank >= total} onClick={() => onStep(1)}><Icon name="chevronRight" size={14} /></button>
+        <button className="icon-btn" title="Previous (k / ↑)" aria-label="Previous schedule" disabled={!schedule || schedule.rank <= 1} onClick={() => onStep(-1)}><Icon name="chevronLeft" size={14} /></button>
+        <button className="icon-btn" title="Next (j / ↓)" aria-label="Next schedule" disabled={!schedule || schedule.rank >= total} onClick={() => onStep(1)}><Icon name="chevronRight" size={14} /></button>
       </div>
       <div className="readouts">
         {order.map((id, i) => {
           const c = CRITERIA.find((x) => x.id === id)!
           const v = schedule ? formatScore(id, schedule.scores) : { text: '—', none: true }
-          const title = id === 'fce' ? (schedule && schedule.scores.rated ? `Mean manual FCE rating: ${schedule.scores.rated} of ${schedule.scores.slots} sections rated, the rest neutral` : 'Mean manual FCE rating over sections (none rated yet)') : id === 'start' ? 'Mean first-class start across days with classes' : id === 'gap' ? 'Shortest break between consecutive classes in the week' : 'Mean last-class end across days with classes'
           return (
-            <div className={`readout${i === 0 ? ' lead' : ''}`} key={id} title={title}>
+            <div className={`readout${i === 0 ? ' lead' : ''}`} key={id} title={SCORE_TITLES[id]}>
               <span className="k"><span className="pri num">{i + 1}</span>{c.short}</span>
               <span className={`v num${v.none ? ' none' : ''}`}>{v.text}{v.sub && <span className="sub">{v.sub}</span>}</span>
             </div>

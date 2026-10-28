@@ -17,7 +17,7 @@ export function TopBar({ semester, runDate, source, count, onLoadFile, onResetSo
     <header className="topbar">
       <div className="wordmark">
         <span className="mark"><Icon name="sliders" size={13} /></span>
-        <span>Schedule Optimiser</span>
+        <span>schedule-optimiser<span className="cursor" aria-hidden="true" /></span>
       </div>
       <div className="status">
         <span>{semester}</span>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Catalog, CourseDetail, Request } from './engine/index.ts'
-import { conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
+import { conflictingPairs, detailUrl, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
+import { defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
 import { TopBar } from './components/TopBar.tsx'
@@ -21,6 +22,7 @@ export default function App() {
   const [custom, setCustom] = useState<{ name: string; catalog: Catalog } | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, CourseDetail>>({})
   const [detailStatus, setDetailStatus] = useState<Record<string, 'loading' | 'missing' | 'unavailable'>>({})
 
@@ -86,7 +88,13 @@ export default function App() {
   }), [state.required, state.groups, state.excluded, state.pinned, state.pittsburghOnly, state.includeMini])
 
   const result = useMemo(() => (allCodes.length ? solve(catalog, request, state.ratings, pairings) : null), [catalog, request, state.ratings, allCodes.length, pairings])
-  const ranked = useMemo(() => (result ? rank(result.schedules, state.order, state.ratings) : []), [result, state.order, state.ratings])
+  const rankCtx = useMemo(() => ({
+    ratings: state.ratings,
+    groups: state.groups,
+    buildingOf: (code: string) => state.buildings[code] ?? defaultBuilding(code),
+    dorm: state.dorm,
+  }), [state.ratings, state.groups, state.buildings, state.dorm])
+  const ranked = useMemo(() => (result ? rank(result.schedules, state.order, rankCtx) : []), [result, state.order, rankCtx])
   const total = ranked.length
 
   const selected = useMemo(() => ranked.find((s) => s.id === selectedId) ?? ranked[0] ?? null, [ranked, selectedId])
@@ -130,9 +138,10 @@ export default function App() {
 
       <aside className="panel left" aria-label="Inputs">
         {loadError && <div className="section"><div className="banner danger"><Icon name="alert" size={14} />{loadError}</div></div>}
-        <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} detailFor={detailFor} detailStatusFor={(c) => (semester ? detailStatus[`${semester}:${c}`] : undefined)} />
+        <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} detailFor={detailFor} detailStatusFor={(c) => (semester ? detailStatus[`${semester}:${c}`] : undefined)}
+          semester={semester} expanded={expanded} onExpand={setExpanded} />
         <CriteriaPanel order={state.order} onChange={(order) => update((s) => ({ ...s, order }))} pittsburghOnly={state.pittsburghOnly} includeMini={state.includeMini}
-          onToggle={(k) => update((s) => ({ ...s, [k]: !s[k] }))} />
+          onToggle={(k) => update((s) => ({ ...s, [k]: !s[k] }))} dorm={state.dorm} onDorm={(dorm) => update((s) => ({ ...s, dorm }))} />
       </aside>
 
       <main className="centre">
@@ -166,7 +175,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="grid-wrap"><WeekGrid schedule={selected} catalog={catalog} colorOf={colorOf} /></div>
+          <div className="grid-wrap"><WeekGrid schedule={selected} catalog={catalog} colorOf={colorOf} onBlockClick={(code) => { if (semester) window.open(detailUrl(code, semester), '_blank', 'noopener') }} /></div>
         )}
         <Register schedule={selected} colorOf={colorOf} />
       </main>
