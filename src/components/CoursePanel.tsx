@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
-import type { Catalog, ChoiceGroup, Course, Offering, Ratings } from '../engine/index.ts'
+import type { Catalog, ChoiceGroup, Course, CourseDetail, Offering, Ratings } from '../engine/index.ts'
 import { displayCode, formatMeeting, formatMeetingCompact, normaliseCode } from '../engine/index.ts'
 import { Icon } from './Icon.tsx'
 import type { AppState } from '../state.ts'
@@ -10,7 +10,42 @@ interface Props {
   state: AppState
   update: (f: (s: AppState) => AppState) => void
   colorOf: (code: string) => { fg: string; bg: string; border: string }
-  slotCounts: Record<string, { lectures: number; sections: number }>
+  slotCounts: Record<string, { lectures: number; sections: number; paired?: boolean }>
+  detailFor: (code: string) => CourseDetail | undefined
+  detailStatusFor: (code: string) => 'loading' | 'missing' | 'unavailable' | undefined
+}
+
+function About({ detail, status, code }: { detail: CourseDetail | undefined; status: 'loading' | 'missing' | 'unavailable' | undefined; code: string }) {
+  const [more, setMore] = useState(false)
+  if (!detail) {
+    return (
+      <div className="about">
+        {status === 'loading' ? <span className="skeleton" style={{ display: 'block', height: 30 }} />
+          : status === 'missing' ? <p className="faint">SOC has no detail page for {displayCode(code)}.</p>
+          : status === 'unavailable' ? <p className="faint">Description unavailable: run <code>npm run details</code> or use the dev server to fetch it.</p>
+          : null}
+      </div>
+    )
+  }
+  const long = detail.description.length > 260
+  return (
+    <div className="about">
+      {detail.description && (
+        <>
+          <p className={`desc${more || !long ? '' : ' clamp'}`}>{detail.description}</p>
+          {long && <button className="more" aria-expanded={more} onClick={() => setMore(!more)}>{more ? 'Show less' : 'Show more'}</button>}
+        </>
+      )}
+      <dl>
+        {detail.prerequisites && <><dt>Prereq</dt><dd>{detail.prerequisites}</dd></>}
+        {detail.corequisites && <><dt>Coreq</dt><dd>{detail.corequisites}</dd></>}
+        {detail.crossListed && <><dt>Cross-listed</dt><dd>{detail.crossListed}</dd></>}
+        {detail.notes && <><dt>Notes</dt><dd>{detail.notes}</dd></>}
+        {detail.specialPermission && <><dt>Permission</dt><dd>Special permission required</dd></>}
+        {detail.urls.length > 0 && <><dt>Links</dt><dd>{detail.urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer">{u.replace(/^https?:\/\//, '')}</a>)}</dd></>}
+      </dl>
+    </div>
+  )
 }
 
 function parseCodes(text: string): { codes: string[]; bad: string[] } {
@@ -78,9 +113,10 @@ function OfferingRow({ o, state, update }: { o: Offering; state: AppState; updat
   )
 }
 
-function CourseRow({ code, course, state, update, color, counts, onRemove }: {
+function CourseRow({ code, course, state, update, color, counts, onRemove, detail, detailStatus }: {
   code: string; course: Course | undefined; state: AppState; update: Props['update']
-  color: { fg: string }; counts?: { lectures: number; sections: number }; onRemove: () => void
+  color: { fg: string }; counts?: { lectures: number; sections: number; paired?: boolean }; onRemove: () => void
+  detail: CourseDetail | undefined; detailStatus: 'loading' | 'missing' | 'unavailable' | undefined
 }) {
   const [open, setOpen] = useState(false)
   const lectures = course?.offerings.filter((o) => o.kind === 'lecture') ?? []
@@ -116,9 +152,10 @@ function CourseRow({ code, course, state, update, color, counts, onRemove }: {
       </div>
       {open && course && (
         <div className="course-detail">
+          <About detail={detail} status={detailStatus} code={code} />
           <div className="rate-all">
             <span>Rate all</span>
-            <span className="counts">{lectures.length ? `${lectures.length} lec` : ''}{lectures.length && sections.length ? ' · ' : ''}{sections.length ? `${sections.length} sec` : ''}</span>
+            <span className="counts">{lectures.length ? `${lectures.length} lec` : ''}{lectures.length && sections.length ? ' · ' : ''}{sections.length ? `${sections.length} sec` : ''}{counts?.paired ? <span className="tag ok" style={{ marginLeft: 6 }} title="Sections are only paired with the lecture SOC lists them under">paired</span> : null}</span>
             <RatingInput value={state.ratings[code]} title={`FCE rating for all of ${displayCode(code)}`}
               onChange={(v) => update((s) => { const r: Ratings = { ...s.ratings }; if (v === undefined) delete r[code]; else r[code] = v; return { ...s, ratings: r } })} />
           </div>
@@ -134,7 +171,7 @@ function CourseRow({ code, course, state, update, color, counts, onRemove }: {
   )
 }
 
-export function CoursePanel({ catalog, state, update, colorOf, slotCounts }: Props) {
+export function CoursePanel({ catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor }: Props) {
   const addRequired = (codes: string[]) => update((s) => ({ ...s, required: [...new Set([...s.required, ...codes])] }))
   const addGroup = () => update((s) => ({ ...s, groups: [...s.groups, { id: newId(), pick: 1, options: [] }] }))
   const patchGroup = (id: string, f: (g: ChoiceGroup) => ChoiceGroup) => update((s) => ({ ...s, groups: s.groups.map((g) => (g.id === id ? f(g) : g)) }))
@@ -153,7 +190,7 @@ export function CoursePanel({ catalog, state, update, colorOf, slotCounts }: Pro
         </div>
         <div className="course-list">
           {state.required.map((code) => (
-            <CourseRow key={code} code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]}
+            <CourseRow key={code} code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]} detail={detailFor(code)} detailStatus={detailStatusFor(code)}
               onRemove={() => update((s) => ({ ...s, required: s.required.filter((c) => c !== code) }))} />
           ))}
         </div>
@@ -180,7 +217,7 @@ export function CoursePanel({ catalog, state, update, colorOf, slotCounts }: Pro
             </div>
             <div className="course-list">
               {g.options.map((code) => (
-                <CourseRow key={code} code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]}
+                <CourseRow key={code} code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]} detail={detailFor(code)} detailStatus={detailStatusFor(code)}
                   onRemove={() => patchGroup(g.id, (x) => ({ ...x, options: x.options.filter((c) => c !== code), pick: Math.min(x.pick, Math.max(0, x.options.length - 1)) }))} />
               ))}
             </div>

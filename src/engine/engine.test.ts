@@ -105,3 +105,28 @@ describe('ranker', () => {
     expect(r[0].slots.some((sl) => sl.offerings[0].id === '21241:Lec 3')).toBe(true)
   })
 })
+
+describe('lecture pairing', () => {
+  it('treats the detail page\'s "Lec 1" as the export\'s lone "Lec"', () => {
+    const req: Request = { ...base, required: ['18213'] }
+    const free = solve(catalog, req, {})
+    const paired = solve(catalog, req, {}, { '18213': { A: 'Lec 1', B: 'Lec 1', C: 'Lec 1', D: 'Lec 1', E: 'Lec 1' } })
+    expect(paired.unplaceable).toEqual([])
+    expect(paired.schedules.length).toBe(free.schedules.length)
+  })
+  it('restricts sections to their listed lecture when a detail page is known', async () => {
+    const { parseDetailHtml } = await import('./parseDetail.ts')
+    const { readFileSync } = await import('node:fs')
+    const d = parseDetailHtml(readFileSync(new URL('./fixtures/detail-15150.html', import.meta.url), 'latin1'))!
+    const req: Request = { ...base, required: ['15150'] }
+    const free = solve(catalog, req, {})
+    const paired = solve(catalog, req, {}, { '15150': d.pairing })
+    expect(paired.slotCounts['15150'].paired).toBe(true)
+    expect(paired.schedules.length).toBeLessThan(free.schedules.length)
+    for (const s of paired.schedules) {
+      const lec = s.slots.find((x) => x.kind === 'lecture')!.offerings[0].label
+      const sec = s.slots.find((x) => x.kind === 'section')!
+      for (const o of sec.offerings) expect(d.pairing[o.label]).toBe(lec)
+    }
+  })
+})

@@ -1,4 +1,5 @@
 import type { Catalog, Course, Meeting, Offering, Ratings, Request, Schedule, Slot } from './types.ts'
+import type { CourseDetail } from './parseDetail.ts'
 
 export interface SolveResult {
   schedules: Schedule[]
@@ -6,25 +7,31 @@ export interface SolveResult {
   missing: string[]
   /** Courses with no placeable offering after filters. */
   unplaceable: string[]
-  /** Number of complete combinations examined (before conflict pruning counts). */
+  /** Number of complete combinations examined. */
   explored: number
   /** True when the result cap stopped enumeration. */
   truncated: boolean
-  /** Per course: how many slots the solver had to choose from. */
-  slotCounts: Record<string, { lectures: number; sections: number }>
+  /** Per course: how many slots the solver had to choose from, and whether lecture pairing was applied. */
+  slotCounts: Record<string, { lectures: number; sections: number; paired: boolean }>
 }
 
 export const RESULT_CAP = 20000
+
+/** Lecture pairing per course: section label -> lecture label. */
+export type Pairings = Record<string, Record<string, string>>
+
+export function pairingsFrom(details: Record<string, CourseDetail | undefined>): Pairings {
+  const out: Pairings = {}
+  for (const [code, d] of Object.entries(details)) if (d && Object.keys(d.pairing).length) out[code] = d.pairing
+  return out
+}
 
 function ratingFor(o: Offering, ratings: Ratings): number | undefined {
   return ratings[o.id] ?? ratings[o.course]
 }
 
 function meetingsKey(ms: Meeting[]): string {
-  return ms
-    .map((m) => `${m.days.join('')}@${m.start}-${m.end}`)
-    .sort()
-    .join('|')
+  return ms.map((m) => `${m.days.join('')}@${m.start}-${m.end}`).sort().join('|')
 }
 
 function usable(o: Offering, req: Request): boolean {
@@ -35,8 +42,8 @@ function usable(o: Offering, req: Request): boolean {
   return true
 }
 
-/** Collapse interchangeable offerings (same meetings, same mini, same rating) into slots. */
-export function slotsFor(course: Course, req: Request, ratings: Ratings): { lectures: Slot[]; sections: Slot[] } {
+/** Collapse interchangeable offerings (same meetings, same mini, same rating, same paired lecture) into slots. */
+export function slotsFor(course: Course, req: Request, ratings: Ratings, pairing?: Record<string, string>): { lectures: Slot[]; sections: Slot[] } {
   const pinnedHere = req.pinned.filter((id) => id.startsWith(`${course.code}:`))
   const byKind = (kind: Offering['kind']) => {
     let offs = course.offerings.filter((o) => o.kind === kind && usable(o, req))
@@ -44,7 +51,8 @@ export function slotsFor(course: Course, req: Request, ratings: Ratings): { lect
     if (pinnedOfKind.length) offs = offs.filter((o) => pinnedOfKind.includes(o.id))
     const groups = new Map<string, Slot>()
     for (const o of offs) {
-      const key = `${o.mini}#${meetingsKey(o.meetings)}#${ratingFor(o, ratings) ?? ''}`
+      const lec = kind === 'section' && pairing ? pairing[o.label] ?? '' : ''
+      const key = `${o.mini}#${meetingsKey(o.meetings)}#${ratingFor(o, ratings) ?? ''}#${lec}`
       const g = groups.get(key)
       if (g) g.offerings.push(o)
       else groups.set(key, { course: course.code, kind, offerings: [o], meetings: o.meetings, mini: o.mini })
@@ -54,7 +62,7 @@ export function slotsFor(course: Course, req: Request, ratings: Ratings): { lect
   return { lectures: byKind('lecture'), sections: byKind('section') }
 }
 
-/** Two offerings conflict when any meeting shares a day and overlaps in time, unless they are opposite minis. */
+/** Two slots conflict when any meeting shares a day and overlaps in time, unless they are opposite minis. */
 export function slotsConflict(a: Slot, b: Slot): boolean {
   if (a.mini !== 0 && b.mini !== 0 && a.mini !== b.mini) return false
   for (const ma of a.meetings) for (const mb of b.meetings) {
@@ -62,6 +70,34 @@ export function slotsConflict(a: Slot, b: Slot): boolean {
     for (const d of ma.days) if (mb.days.includes(d)) return true
   }
   return false
+}
+
+function lectureLabelMatches(label: string, want: string): boolean {
+  const norm = (x: string) => (/^lec$/i.test(x.trim()) ? 'lec 1' : x.trim().toLowerCase())
+  return norm(label) === norm(want)
+}
+
+/**
+ * Every internally consistent way to take one course: a tuple of slots (lecture and/or section).
+ * With a known pairing, a section only joins the lecture it is listed under.
+ */
+export function choicesFor(course: Course, req: Request, ratings: Ratings, pairing?: Record<string, string>): { choices: Slot[][]; lectures: number; sections: number; paired: boolean } {
+  const { lectures, sections } = slotsFor(course, req, ratings, pairing)
+  const paired = !!pairing && lectures.length > 0 && sections.length > 0 && sections.some((s) => pairing[s.offerings[0].label])
+  let choices: Slot[][]
+  if (lectures.length && sections.length) {
+    choices = []
+    for (const sec of sections) {
+      const want = paired ? pairing![sec.offerings[0].label] : undefined
+      // The detail page says "Lec 1" where the export says "Lec"; when nothing matches, fall back to every lecture.
+      let lecs = want ? lectures.filter((lec) => lec.offerings.some((o) => lectureLabelMatches(o.label, want))) : lectures
+      if (lecs.length === 0) lecs = lectures
+      for (const lec of lecs) if (!slotsConflict(lec, sec)) choices.push([lec, sec])
+    }
+  } else {
+    choices = [...lectures, ...sections].map((s) => [s])
+  }
+  return { choices, lectures: lectures.length, sections: sections.length, paired }
 }
 
 function* combinations<T>(items: T[], k: number, start = 0, acc: T[] = []): Generator<T[]> {
@@ -87,32 +123,28 @@ export function courseSets(req: Request): string[][] {
   return sets.filter((s) => { const k = [...s].sort().join(','); if (seen.has(k)) return false; seen.add(k); return true })
 }
 
-export function solve(catalog: Catalog, req: Request, ratings: Ratings): SolveResult {
+export function solve(catalog: Catalog, req: Request, ratings: Ratings, pairings: Pairings = {}): SolveResult {
   const schedules: Schedule[] = []
   const missing = new Set<string>()
   const unplaceable = new Set<string>()
-  const slotCounts: Record<string, { lectures: number; sections: number }> = {}
+  const slotCounts: SolveResult['slotCounts'] = {}
   let explored = 0
   let truncated = false
 
   const allCodes = new Set([...req.required, ...req.groups.flatMap((g) => g.options)])
-  const perCourse = new Map<string, Slot[][]>() // course -> list of independent choice dimensions
+  const perCourse = new Map<string, Slot[][]>()
   for (const code of allCodes) {
     const course = catalog.courses[code]
     if (!course) { missing.add(code); continue }
-    const { lectures, sections } = slotsFor(course, req, ratings)
-    slotCounts[code] = { lectures: lectures.length, sections: sections.length }
-    const dims: Slot[][] = []
-    if (lectures.length) dims.push(lectures)
-    if (sections.length) dims.push(sections)
-    if (dims.length === 0) { unplaceable.add(code); continue }
-    perCourse.set(code, dims)
+    const { choices, lectures, sections, paired } = choicesFor(course, req, ratings, pairings[code])
+    slotCounts[code] = { lectures, sections, paired }
+    if (choices.length === 0) { unplaceable.add(code); continue }
+    perCourse.set(code, choices)
   }
 
   for (const set of courseSets(req)) {
     if (set.some((c) => !perCourse.has(c))) continue
-    // Order dimensions by fewest options first for faster pruning.
-    const dims = set.flatMap((c) => perCourse.get(c)!).sort((a, b) => a.length - b.length)
+    const dims = set.map((c) => perCourse.get(c)!).sort((a, b) => a.length - b.length)
     const chosen: Slot[] = []
     const dfs = (i: number): boolean => {
       if (i === dims.length) {
@@ -122,11 +154,11 @@ export function solve(catalog: Catalog, req: Request, ratings: Ratings): SolveRe
         schedules.push({ id: slots.map((s) => s.offerings[0].id).sort().join('+'), courses: set, slots })
         return true
       }
-      for (const slot of dims[i]) {
-        if (chosen.some((c) => slotsConflict(c, slot))) continue
-        chosen.push(slot)
+      for (const tuple of dims[i]) {
+        if (tuple.some((slot) => chosen.some((c) => slotsConflict(c, slot)))) continue
+        chosen.push(...tuple)
         const ok = dfs(i + 1)
-        chosen.pop()
+        chosen.length -= tuple.length
         if (!ok) return false
       }
       return true
@@ -138,24 +170,18 @@ export function solve(catalog: Catalog, req: Request, ratings: Ratings): SolveRe
 }
 
 /** Pairs of courses that can never coexist given the filters (used to explain an empty result). */
-export function conflictingPairs(catalog: Catalog, codes: string[], req: Request, ratings: Ratings): [string, string][] {
-  const dims = new Map<string, Slot[][]>()
+export function conflictingPairs(catalog: Catalog, codes: string[], req: Request, ratings: Ratings, pairings: Pairings = {}): [string, string][] {
+  const choices = new Map<string, Slot[][]>()
   for (const c of codes) {
     const course = catalog.courses[c]
     if (!course) continue
-    const { lectures, sections } = slotsFor(course, req, ratings)
-    const d: Slot[][] = []
-    if (lectures.length) d.push(lectures)
-    if (sections.length) d.push(sections)
-    if (d.length) dims.set(c, d)
+    const { choices: ch } = choicesFor(course, req, ratings, pairings[c])
+    if (ch.length) choices.set(c, ch)
   }
   const out: [string, string][] = []
-  const list = [...dims.keys()]
+  const list = [...choices.keys()]
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-    const a = dims.get(list[i])!, b = dims.get(list[j])!
-    const choices = (d: Slot[][]): Slot[][] => d.reduce<Slot[][]>((acc, dim) => acc.flatMap((p) => dim.map((s) => [...p, s])), [[]])
-    const ca = choices(a).filter((p) => p.every((x, k) => p.slice(k + 1).every((y) => !slotsConflict(x, y))))
-    const cb = choices(b).filter((p) => p.every((x, k) => p.slice(k + 1).every((y) => !slotsConflict(x, y))))
+    const ca = choices.get(list[i])!, cb = choices.get(list[j])!
     const ok = ca.some((pa) => cb.some((pb) => pa.every((x) => pb.every((y) => !slotsConflict(x, y)))))
     if (!ok) out.push([list[i], list[j]])
   }

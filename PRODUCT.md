@@ -31,6 +31,7 @@ Exhaustive enumeration with a user-reorderable priority list. Unlike picking sec
 - Times are `hh:mmAM/PM`, 12-hour.
 - Locations include Pittsburgh plus Doha, San Jose, Kigali, New York, Washington DC, Lisbon. The student is in Pittsburgh; other campuses are noise for them.
 - The export has no instructor column. Faculty Course Evaluation (FCE) data lives elsewhere at CMU and is not yet part of this tool.
+- The SOC course-details page (`enr-apps.as.cmu.edu/open/SOC/SOCServlet/courseDetails?COURSE=<code>&SEMESTER=<S27>`) is public and carries the description, prerequisites, corequisites, cross-listings, notes, related URLs, special-permission flag, enrollment reservations and the lecture/section grouping. It has no instructor either. An unknown course returns HTTP 500. The tool fetches it once per requested course, server-side, and caches it in `public/data/details.json`.
 - Students write course codes as `21-241`; the export stores them as `21241`. Both forms must be accepted.
 
 ## Capabilities and Constraints
@@ -47,7 +48,7 @@ Confirmed:
 - Terminology: "course" (e.g. 15-150), "lecture" (Lec, Lec 1…), "section" (A, B…), "meeting" (one days+time block), "schedule" (one complete, conflict-free pick).
 
 Open decisions (recorded, not invented):
-- Lecture-to-section pairing is not encoded in the export (e.g. whether 15-150 section M may be taken with Lec 1). Default: any lecture may pair with any section, and the student can pin or exclude specific lectures or sections to express known pairings.
+- Lecture-to-section pairing is not in the export, but the SOC course-details page lists sections under their lecture. When that page has been fetched for a course, the solver only pairs a section with its listed lecture (the detail page labels a lone lecture "Lec 1" where the export says "Lec"); without it, any lecture pairs with any section, and pin/exclude still apply.
 - Exact direction of the "end time" criterion (earlier assumed).
 - How the ordered criteria combine (strict priority order vs. weighted). Strict priority with a sensible tolerance so near-ties fall through to the next criterion is the working assumption; the UI must make the order the visible control.
 - Whether mini-semester sections and non-Pittsburgh locations should be hidden by default (assumed: Pittsburgh only by default, mini sections shown and labelled).

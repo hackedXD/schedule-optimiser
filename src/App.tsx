@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Catalog, Request } from './engine/index.ts'
-import { conflictingPairs, displayCode, parseSocHtml, rank, solve } from './engine/index.ts'
+import type { Catalog, CourseDetail, Request } from './engine/index.ts'
+import { conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
 import { TopBar } from './components/TopBar.tsx'
@@ -21,6 +21,8 @@ export default function App() {
   const [custom, setCustom] = useState<{ name: string; catalog: Catalog } | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [details, setDetails] = useState<Record<string, CourseDetail>>({})
+  const [detailStatus, setDetailStatus] = useState<Record<string, 'loading' | 'missing' | 'unavailable'>>({})
 
   useEffect(() => {
     fetch('/data/soc.json').then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
@@ -30,8 +32,52 @@ export default function App() {
 
   const catalog = custom?.catalog ?? bundled ?? EMPTY_CATALOG
   const loading = !bundled && !custom && !loadError
+  const semester = semesterCode(catalog.semester)
+
+  // Course details (description, prerequisites, lecture pairing): bundled cache first, then the dev endpoint per course.
+  useEffect(() => {
+    fetch('/data/details.json').then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, CourseDetail>) => {
+      const byCode: Record<string, CourseDetail> = {}
+      for (const d of Object.values(cache)) byCode[`${semesterCode(d.semester) ?? ''}:${d.code}`] = d
+      setDetails((prev) => ({ ...byCode, ...prev }))
+    }).catch(() => {})
+  }, [])
 
   const allCodes = useMemo(() => [...state.required, ...state.groups.flatMap((g) => g.options)], [state.required, state.groups])
+  const detailFor = useCallback((code: string) => (semester ? details[`${semester}:${code}`] : undefined), [details, semester])
+
+  useEffect(() => {
+    if (!semester) return
+    let cancelled = false
+    const todo = allCodes.filter((c) => catalog.courses[c] && !details[`${semester}:${c}`] && !detailStatus[`${semester}:${c}`])
+    if (!todo.length) return
+    setDetailStatus((s) => ({ ...s, ...Object.fromEntries(todo.map((c) => [`${semester}:${c}`, 'loading' as const])) }))
+    ;(async () => {
+      for (const code of todo) {
+        const key = `${semester}:${code}`
+        try {
+          const r = await fetch(`/api/detail?course=${code}&semester=${semester}`)
+          if (cancelled) return
+          if (r.ok) {
+            const d = (await r.json()) as CourseDetail
+            setDetails((prev) => ({ ...prev, [key]: d }))
+            setDetailStatus((s) => { const n = { ...s }; delete n[key]; return n })
+          } else {
+            setDetailStatus((s) => ({ ...s, [key]: r.status === 404 && r.headers.get('content-type')?.includes('json') ? 'missing' : 'unavailable' }))
+          }
+        } catch {
+          if (!cancelled) setDetailStatus((s) => ({ ...s, [key]: 'unavailable' }))
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [allCodes, catalog, semester, details, detailStatus])
+
+  const pairings = useMemo(() => {
+    const m: Record<string, CourseDetail | undefined> = {}
+    for (const c of allCodes) m[c] = detailFor(c)
+    return pairingsFrom(m)
+  }, [allCodes, detailFor])
   const colorOf = useCallback((code: string) => courseColor(Math.max(0, allCodes.indexOf(code))), [allCodes])
 
   const request: Request = useMemo(() => ({
@@ -39,7 +85,7 @@ export default function App() {
     locations: state.pittsburghOnly ? [PITTSBURGH] : [], includeMini: state.includeMini,
   }), [state.required, state.groups, state.excluded, state.pinned, state.pittsburghOnly, state.includeMini])
 
-  const result = useMemo(() => (allCodes.length ? solve(catalog, request, state.ratings) : null), [catalog, request, state.ratings, allCodes.length])
+  const result = useMemo(() => (allCodes.length ? solve(catalog, request, state.ratings, pairings) : null), [catalog, request, state.ratings, allCodes.length, pairings])
   const ranked = useMemo(() => (result ? rank(result.schedules, state.order, state.ratings) : []), [result, state.order, state.ratings])
   const total = ranked.length
 
@@ -75,7 +121,7 @@ export default function App() {
     }
   }
 
-  const pairs = useMemo(() => (result && result.schedules.length === 0 && allCodes.length > 1 ? conflictingPairs(catalog, [...new Set(allCodes)], request, state.ratings) : []), [result, allCodes, catalog, request, state.ratings])
+  const pairs = useMemo(() => (result && result.schedules.length === 0 && allCodes.length > 1 ? conflictingPairs(catalog, [...new Set(allCodes)], request, state.ratings, pairings) : []), [result, allCodes, catalog, request, state.ratings, pairings])
 
   return (
     <div className="app">
@@ -84,7 +130,7 @@ export default function App() {
 
       <aside className="panel left" aria-label="Inputs">
         {loadError && <div className="section"><div className="banner danger"><Icon name="alert" size={14} />{loadError}</div></div>}
-        <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} />
+        <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} detailFor={detailFor} detailStatusFor={(c) => (semester ? detailStatus[`${semester}:${c}`] : undefined)} />
         <CriteriaPanel order={state.order} onChange={(order) => update((s) => ({ ...s, order }))} pittsburghOnly={state.pittsburghOnly} includeMini={state.includeMini}
           onToggle={(k) => update((s) => ({ ...s, [k]: !s[k] }))} />
       </aside>

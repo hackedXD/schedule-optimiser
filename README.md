@@ -32,6 +32,20 @@ The export has no instructor column, so FCE ratings are entered manually:
 expand a course in the left panel and type a rating for the whole course or for
 individual lectures and sections. Unrated sections count as neutral.
 
+## Course details
+
+Descriptions, prerequisites and the lecture-to-section pairing come from the
+SOC course-details page, which the full export lacks. While `npm run dev` is
+running, the app fetches each requested course once through a local endpoint
+and caches it in `public/data/details.json`. For a production build, prefetch:
+
+```bash
+npm run details -- S27 21-241 18-213 15-150
+```
+
+When a course's details are known, a section is only paired with the lecture
+SOC lists it under (shown as a "paired" tag in the expanded course).
+
 ## Ranking
 
 Criteria are compared in strict priority order. Each is quantised to a small
