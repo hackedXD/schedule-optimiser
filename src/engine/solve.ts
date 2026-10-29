@@ -84,14 +84,22 @@ function lectureLabelMatches(label: string, want: string): boolean {
 export function choicesFor(course: Course, req: Request, ratings: Ratings, pairing?: Record<string, string>): { choices: Slot[][]; lectures: number; sections: number; paired: boolean } {
   const { lectures, sections } = slotsFor(course, req, ratings, pairing)
   const paired = !!pairing && lectures.length > 0 && sections.length > 0 && sections.some((s) => pairing[s.offerings[0].label])
+  const allLectureLabels = course.offerings.filter((o) => o.kind === 'lecture').map((o) => o.label)
   let choices: Slot[][]
   if (lectures.length && sections.length) {
     choices = []
     for (const sec of sections) {
       const want = paired ? pairing![sec.offerings[0].label] : undefined
-      // The detail page says "Lec 1" where the export says "Lec"; when nothing matches, fall back to every lecture.
-      let lecs = want ? lectures.filter((lec) => lec.offerings.some((o) => lectureLabelMatches(o.label, want))) : lectures
-      if (lecs.length === 0) lecs = lectures
+      let lecs = lectures
+      if (want) {
+        lecs = lectures.filter((lec) => lec.offerings.some((o) => lectureLabelMatches(o.label, want)))
+        if (lecs.length === 0) {
+          // The paired lecture exists but was excluded or pinned away: this section is not takeable.
+          if (allLectureLabels.some((l) => lectureLabelMatches(l, want))) continue
+          // The detail page names a lecture the export does not have at all: pairing is unusable, allow every lecture.
+          lecs = lectures
+        }
+      }
       for (const lec of lecs) if (!slotsConflict(lec, sec)) choices.push([lec, sec])
     }
   } else {

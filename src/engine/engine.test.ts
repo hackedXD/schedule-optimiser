@@ -110,6 +110,20 @@ describe('ranker', () => {
 })
 
 describe('lecture pairing', () => {
+  it('drops sections whose paired lecture was excluded instead of re-pairing them', async () => {
+    const { parseDetailHtml } = await import('./parseDetail.ts')
+    const { readFileSync } = await import('node:fs')
+    const d = parseDetailHtml(readFileSync(new URL('./fixtures/detail-15150.html', import.meta.url), 'latin1'))!
+    const req: Request = { ...base, required: ['15150'], excluded: ['15150:Lec 1'] }
+    const res = solve(catalog, req, {}, { '15150': d.pairing })
+    expect(res.schedules.length).toBeGreaterThan(0)
+    for (const s of res.schedules) {
+      const sec = s.slots.find((x) => x.kind === 'section')!
+      for (const o of sec.offerings) expect(d.pairing[o.label]).toBe('Lec 2')
+    }
+    const pinned = solve(catalog, { ...base, required: ['15150'], pinned: ['15150:Lec 2'] }, {}, { '15150': d.pairing })
+    expect(pinned.schedules.every((s) => s.slots.find((x) => x.kind === 'section')!.offerings.every((o) => d.pairing[o.label] === 'Lec 2'))).toBe(true)
+  })
   it('treats the detail page\'s "Lec 1" as the export\'s lone "Lec"', () => {
     const req: Request = { ...base, required: ['18213'] }
     const free = solve(catalog, req, {})
