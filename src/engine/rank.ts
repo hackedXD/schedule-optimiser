@@ -7,10 +7,9 @@ export const CRITERIA: Criterion[] = [
   { id: 'start', name: 'Start time', short: 'START', direction: 'Days that begin later first.', tolerance: 15, unit: 'minutes' },
   { id: 'gap', name: 'Time between classes', short: 'GAP', direction: 'Longer shortest break first.', tolerance: 10, unit: 'minutes' },
   { id: 'end', name: 'End time', short: 'END', direction: 'Days that finish earlier first.', tolerance: 15, unit: 'minutes' },
-  { id: 'pref', name: 'Group preference', short: 'PREF', direction: 'Higher-ranked options in ranked groups first.', tolerance: 0.5, unit: 'rank' },
   { id: 'path', name: 'Walking', short: 'WALK', direction: 'Less estimated walking per week first.', tolerance: 250, unit: 'metres' },
 ]
-export const DEFAULT_ORDER: CriterionId[] = ['fce', 'start', 'gap', 'end', 'pref', 'path']
+export const DEFAULT_ORDER: CriterionId[] = ['fce', 'start', 'gap', 'end', 'path']
 
 export interface DayBlock { day: Day; start: number; end: number; slot: Slot }
 
@@ -56,12 +55,6 @@ export function score(s: Schedule, ctx: RankContext, neutral: number | null): Sc
     if (r !== undefined) { rated.push(r); ratedCount++ }
     else if (neutral !== null) rated.push(neutral)
   }
-  let pref: number | null = null
-  for (const g of ctx.groups) {
-    if (!g.ranked) continue
-    for (const c of s.courses) { const i = g.options.indexOf(c); if (i >= 0) pref = (pref ?? 0) + i }
-    if (pref === null) pref = 0
-  }
   return {
     fce: ratedCount ? mean(rated) : null,
     rated: ratedCount,
@@ -69,7 +62,6 @@ export function score(s: Schedule, ctx: RankContext, neutral: number | null): Sc
     start: mean(starts),
     gap: gaps.length ? Math.min(...gaps) : Infinity,
     end: mean(ends),
-    pref,
     path: pathKnown ? path : null,
   }
 }
@@ -81,7 +73,6 @@ export function orientedValue(id: CriterionId, sc: Scores): number {
     case 'start': return sc.start
     case 'gap': return sc.gap === Infinity ? 24 * 60 : sc.gap
     case 'end': return -sc.end
-    case 'pref': return -(sc.pref ?? 0)
     case 'path': return -(sc.path ?? 0)
   }
 }
@@ -112,4 +103,26 @@ export function rank(schedules: Schedule[], order: CriterionId[], ctx: RankConte
   })
   scored.forEach((s, i) => (s.rank = i + 1))
   return scored
+}
+
+/** Sum of option positions in ranked groups: 0 means every ranked group got its first choice. */
+export function preferenceCost(s: Schedule, groups: { options: string[]; ranked?: boolean }[]): number {
+  let cost = 0
+  for (const g of groups) {
+    if (!g.ranked) continue
+    for (const c of s.courses) { const i = g.options.indexOf(c); if (i >= 0) cost += i }
+  }
+  return cost
+}
+
+/**
+ * Ranked groups are hard tiers: keep only the schedules whose ranked-group choices are the best achievable.
+ * A lower-ranked option is used only when no conflict-free schedule exists with a higher one.
+ */
+export function applyRankedGroups(schedules: Schedule[], groups: { options: string[]; ranked?: boolean }[]): { kept: Schedule[]; dropped: number; cost: number } {
+  if (!groups.some((g) => g.ranked) || schedules.length === 0) return { kept: schedules, dropped: 0, cost: 0 }
+  const costs = schedules.map((s) => preferenceCost(s, groups))
+  const best = Math.min(...costs)
+  const kept = schedules.filter((_, i) => costs[i] === best)
+  return { kept, dropped: schedules.length - kept.length, cost: best }
 }

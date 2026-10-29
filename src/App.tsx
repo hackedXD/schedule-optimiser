@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Catalog, CourseDetail, FceRecord, InstructorFces, Request, Staffing } from './engine/index.ts'
-import { conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve, staffingFromSio, surnameKey } from './engine/index.ts'
+import { applyRankedGroups, conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve, staffingFromSio, surnameKey } from './engine/index.ts'
 import { PLACES, defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
@@ -171,7 +171,8 @@ export default function App() {
     },
     dorm: state.dorm,
   }), [state.ratings, state.groups, state.buildings, state.dorm, staffings])
-  const ranked = useMemo(() => (result ? rank(result.schedules, state.order, rankCtx) : []), [result, state.order, rankCtx])
+  const tiered = useMemo(() => (result ? applyRankedGroups(result.schedules, state.groups) : { kept: [], dropped: 0, cost: 0 }), [result, state.groups])
+  const ranked = useMemo(() => (result ? rank(tiered.kept, state.order, rankCtx) : []), [result, tiered, state.order, rankCtx])
   const total = ranked.length
 
   const selected = useMemo(() => ranked.find((s) => s.id === selectedId) ?? ranked[0] ?? null, [ranked, selectedId])
@@ -267,7 +268,8 @@ export default function App() {
         onImport={(code, rows) => update((s) => ({ ...s, sio: { ...s.sio, [code]: { importedAt: new Date().toISOString(), rows } } }))} />
 
       <aside className="panel right" aria-label="Ranked schedules">
-        <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={result?.truncated ?? false} explored={result?.explored ?? 0} />
+        <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={result?.truncated ?? false} explored={result?.explored ?? 0}
+          tierNote={tiered.dropped > 0 ? `${tiered.dropped.toLocaleString()} schedule${tiered.dropped === 1 ? '' : 's'} with lower-ranked group options hidden${tiered.cost > 0 ? '; no schedule fits the top choice in every ranked group' : ''}.` : null} />
       </aside>
     </div>
   )

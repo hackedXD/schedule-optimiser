@@ -71,7 +71,6 @@ near-ties fall through to the next criterion.
 | Start time | mean first-class start over days with classes | later |
 | Time between classes | shortest break between consecutive classes in the week | longer |
 | End time | mean last-class end over days with classes | earlier |
-| Group preference | positions of the chosen options in groups you marked Ranked | earlier options |
 | Walking | estimated metres per week between consecutive buildings, from and to your dorm when set | less |
 
 Walking is an estimate. SOC publishes no rooms for an upcoming semester, so
@@ -84,7 +83,9 @@ department estimate for walking. Imports stay in your browser. Enrollment reserv
 the SOC detail page show as a `res` tag on the reserved sections.
 
 A pick-N group can be **Equal** (options interchangeable) or **Ranked** (drag
-options into preference order; the Group preference criterion then applies).
+options into preference order). Ranked is a hard tier, applied before any
+criterion: a lower option is used only when no conflict-free schedule exists
+with a higher one, and the results footer says how many schedules that hid.
 Clicking a block on the weekly grid opens an in-app details dialog for that course, with a link to its SOC page.
 
 ## Engine

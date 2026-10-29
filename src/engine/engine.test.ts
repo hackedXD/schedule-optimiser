@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { parseSocHtml } from './parseSoc.ts'
 import { parseClock, formatClock, normaliseCode } from './time.ts'
 import { solve, courseSets, slotsConflict } from './solve.ts'
-import { rank, score } from './rank.ts'
+import { applyRankedGroups, rank, score } from './rank.ts'
 import type { RankContext, Request, Slot } from './types.ts'
 import { defaultBuilding } from '../campus.ts'
 
@@ -148,17 +148,25 @@ describe('lecture pairing', () => {
   })
 })
 
-describe('preference and walking', () => {
+describe('ranked groups and walking', () => {
   const req: Request = { ...base, required: ['21241'], groups: [{ id: 'g', pick: 1, options: ['17200', '10335', '73102'], ranked: true }] }
   const res = solve(catalog, req, {})
-  it('ranked groups prefer earlier options', () => {
-    const r = rank(res.schedules, ['pref', 'start', 'gap', 'end', 'fce', 'path'], ctx({}, { groups: req.groups }))
-    expect(r[0].courses).toContain('17200')
-    expect(r[0].scores.pref).toBe(0)
-    expect(r[r.length - 1].courses).toContain('73102')
+  it('ranked groups keep only the best achievable option', () => {
+    const { kept, dropped, cost } = applyRankedGroups(res.schedules, req.groups)
+    expect(cost).toBe(0)
+    expect(kept.every((s) => s.courses.includes('17200'))).toBe(true)
+    expect(dropped).toBeGreaterThan(0)
+    expect(kept.length + dropped).toBe(res.schedules.length)
+    // Exclude every 17-200 lecture: the tier falls through to the second option.
+    const ex = solve(catalog, { ...req, excluded: ['17200:Lec'] }, {})
+    const t2 = applyRankedGroups(ex.schedules, req.groups)
+    expect(t2.cost).toBe(1)
+    expect(t2.kept.every((s) => s.courses.includes('10335'))).toBe(true)
+    // Equal groups are untouched.
+    expect(applyRankedGroups(res.schedules, [{ ...req.groups[0], ranked: false }]).dropped).toBe(0)
   })
   it('walking is estimated from department buildings and a dorm', () => {
-    const r = rank(res.schedules, ['path', 'start', 'gap', 'end', 'fce', 'pref'], ctx({}, { buildingOf: defaultBuilding, dorm: 'MOR' }))
+    const r = rank(res.schedules, ['path', 'start', 'gap', 'end', 'fce'], ctx({}, { buildingOf: defaultBuilding, dorm: 'MOR' }))
     expect(r[0].scores.path).not.toBeNull()
     for (let i = 1; i < r.length; i++) expect(r[i - 1].scores.path!).toBeLessThanOrEqual(r[i].scores.path! + 250)
     const noDorm = rank(res.schedules, ['path'], ctx({}, { buildingOf: defaultBuilding, dorm: null }))

@@ -270,7 +270,7 @@ function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: numb
           <span>of {g.options.length}</span>
         </span>
         <span className="ops">
-          <button className={`btn ghost sm${g.ranked ? ' on' : ''}`} role="switch" aria-checked={!!g.ranked} title={g.ranked ? 'Options are ranked: drag to set preference' : 'Options are equal: click to rank them'}
+          <button className={`btn ghost sm${g.ranked ? ' on' : ''}`} role="switch" aria-checked={!!g.ranked} title={g.ranked ? 'Ranked: a lower option is used only when no schedule fits a higher one. Drag to reorder.' : 'Equal: options are interchangeable. Click to rank them.'}
             onClick={() => patch((x) => ({ ...x, ranked: !x.ranked }))}>
             <Icon name={g.ranked ? 'sliders' : 'equal'} size={12} /> {g.ranked ? 'Ranked' : 'Equal'}
           </button>

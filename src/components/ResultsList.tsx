@@ -11,11 +11,12 @@ interface Props {
   colorOf: (code: string) => { fg: string }
   truncated: boolean
   explored: number
+  tierNote?: string | null
 }
 
 const PAGE = 150
 
-export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, truncated }: Props) {
+export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, truncated, tierNote }: Props) {
   const [limit, setLimit] = useState(PAGE)
   const listRef = useRef<HTMLDivElement>(null)
   const positions = useRef(new Map<string, number>())
@@ -87,6 +88,7 @@ export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, trun
           <div className="more"><button className="btn ghost sm" onClick={() => setLimit(limit + PAGE * 2)}>Show {Math.min(PAGE * 2, ranked.length - limit)} more</button></div>
         )}
       </div>
+      {tierNote && <div className="results-foot">{tierNote}</div>}
       {truncated && (
         <div className="results-foot"><b>Stopped at {ranked.length.toLocaleString()}.</b> Too many combinations to list them all. Pin a lecture or exclude sections to narrow it.</div>
       )}

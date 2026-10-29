@@ -40,13 +40,12 @@ Exhaustive enumeration with a user-reorderable priority list. Unlike picking sec
 Confirmed:
 - Input: a list of required course codes and zero or more choice groups of the form "pick N of [codes]". The canonical example: `21-241, 18-213, 15-150, 49-101`, and pick 1 of `17-200, 10-335, 73-102`.
 - Enumeration: every combination of one lecture (where a course has lectures) and one section (where a course has sections) per course, across all choice-group selections, filtered to combinations with no time overlap on any shared day.
-- Ranking by six built-in criteria whose order the student can rearrange in the app (the last two added 28-Oct-2026):
+- Ranking by five built-in criteria whose order the student can rearrange in the app (Walking added 28-Oct-2026):
   1. FCE rating of the instructor for that class (higher is better).
   2. Start time: later daily starts are better.
   3. Ample time between classes: breathing room between consecutive meetings is better than back-to-back.
   4. End time: earlier daily ends are better (the brief lists "end time" without a direction; earlier is assumed and must be confirmable).
-  5. Group preference: a pick-N group can be marked Ranked, and schedules that take earlier-listed options rank higher. Equal groups contribute nothing.
-  6. Walking ("pathing"): estimated metres per week between consecutive classes' buildings, from and to a chosen dorm when set. SOC publishes no rooms before the semester, so each course is placed in its department's usual building (`src/campus.ts`, hand-placed coordinates) unless the student overrides the building per course. The estimate is labelled as such in the UI.
+  5. Walking ("pathing"): estimated metres per week between consecutive classes' buildings, from and to a chosen dorm when set. SOC publishes no rooms before the semester, so each course is placed in its department's usual building (`src/campus.ts`, hand-placed coordinates) unless the student overrides the building per course. The estimate is labelled as such in the UI.
 - FCE: instructor-level history comes from the ScottyLabs course API (`course.apis.scottylabs.org/fces?courseID=15-150`, public, no login; a scrape of CMU's SmartEvals results, through Fall 2025 as of 28-Oct-2026). `rating[7]` is overall teaching and `rating[8]` overall course, confirmed from ScottyLabs' own table code. Because the export has no instructors, the student picks which instructor's score to apply; the criterion is otherwise fed by ratings the student types in manually. Because the export has no instructor, manual ratings attach to a course or to a specific lecture/section label. Unrated items are treated as neutral so the criterion never penalises missing data.
 - Terminology: "course" (e.g. 15-150), "lecture" (Lec, Lec 1…), "section" (A, B…), "meeting" (one days+time block), "schedule" (one complete, conflict-free pick).
 

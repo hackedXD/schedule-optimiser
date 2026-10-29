@@ -8,7 +8,6 @@ export function formatScore(id: CriterionId, s: Scores): { text: string; none: b
     case 'start': return { text: formatClock(Math.round(s.start)), none: false }
     case 'gap': return s.gap === Infinity ? { text: 'none', none: true } : { text: formatDuration(s.gap), none: false }
     case 'end': return { text: formatClock(Math.round(s.end)), none: false }
-    case 'pref': return s.pref === null ? { text: '—', none: true } : { text: s.pref === 0 ? '1st' : `+${s.pref}`, none: false }
     case 'path': return s.path === null ? { text: '—', none: true } : { text: `${(s.path / 1000).toFixed(1)} km`, none: false }
   }
 }
@@ -21,7 +20,6 @@ export function formatScoreCompact(id: CriterionId, s: Scores): { text: string; 
     case 'start': return { text: clock(s.start), none: false }
     case 'end': return { text: clock(s.end), none: false }
     case 'gap': return s.gap === Infinity ? { text: '—', none: true } : { text: s.gap >= 60 ? `${Math.floor(s.gap / 60)}h${s.gap % 60 ? String(Math.round(s.gap % 60)).padStart(2, '0') : ''}` : `${Math.round(s.gap)}m`, none: false }
-    case 'pref': return s.pref === null ? { text: '—', none: true } : { text: s.pref === 0 ? '1st' : `+${s.pref}`, none: false }
     case 'path': return s.path === null ? { text: '—', none: true } : { text: `${(s.path / 1000).toFixed(1)}k`, none: false }
   }
 }
@@ -31,7 +29,6 @@ export const SCORE_TITLES: Record<CriterionId, string> = {
   start: 'Mean first-class start across days with classes',
   gap: 'Shortest break between consecutive classes in the week',
   end: 'Mean last-class end across days with classes',
-  pref: 'Positions of the chosen options in ranked groups: 1st means every ranked group got its first choice',
   path: 'Estimated walking per week between buildings (department estimate unless you set a building), from and to your dorm when set',
 }
 

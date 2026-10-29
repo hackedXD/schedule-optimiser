@@ -103,7 +103,11 @@ export function choicesFor(course: Course, req: Request, ratings: Ratings, pairi
       for (const lec of lecs) if (!slotsConflict(lec, sec)) choices.push([lec, sec])
     }
   } else {
-    choices = [...lectures, ...sections].map((s) => [s])
+    // A course that offers lectures needs one, and one that offers sections needs one: if every option of a
+    // kind was excluded or pinned away, the course cannot be taken at all.
+    const hasLectures = course.offerings.some((o) => o.kind === 'lecture' && !o.tba)
+    const hasSections = course.offerings.some((o) => o.kind === 'section' && !o.tba)
+    choices = (hasLectures && !lectures.length) || (hasSections && !sections.length) ? [] : [...lectures, ...sections].map((s) => [s])
   }
   return { choices, lectures: lectures.length, sections: sections.length, paired }
 }
