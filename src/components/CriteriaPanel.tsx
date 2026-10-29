@@ -12,6 +12,9 @@ interface Props {
   onToggle: (key: 'pittsburghOnly' | 'includeMini') => void
   dorm: string | null
   onDorm: (dorm: string | null) => void
+  availabilityMode: boolean
+  hardCount: number
+  onAvailabilityMode: (v: boolean) => void
 }
 
 export function move<T>(list: T[], from: number, to: number): T[] {
@@ -38,10 +41,22 @@ export function useRowDrag(onMove: (from: number, to: number) => void) {
   return { props, cls }
 }
 
-export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, onToggle, dorm, onDorm }: Props) {
+export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, onToggle, dorm, onDorm, availabilityMode, hardCount, onAvailabilityMode }: Props) {
   const drag = useRowDrag((from, to) => onChange(move(order, from, to)))
   return (
     <>
+      <section className="section">
+        <div className="section-head">
+          <h2>Availability</h2>
+          <span className="meta">{hardCount ? `${hardCount} hard course${hardCount === 1 ? '' : 's'}` : 'none marked hard'}</span>
+        </div>
+        <button className="toggle" style={{ width: '100%' }} role="switch" aria-checked={availabilityMode} onClick={() => onAvailabilityMode(!availabilityMode)}>
+          <span>Maximise chances of getting in</span><span className="switch" aria-checked={availabilityMode} />
+        </button>
+        <p className="help">
+          Mark courses as hard to get in their expanded row. With this on, the optimiser commits only to easy courses' sections and keeps every hard course's lecture and section options open, hardest first: plans are ordered by how many options stay open (guaranteed whatever you end up with in harder courses), and only then by the criteria below. With an SIO import, open seats count fully, waitlists half, closed sections a little.
+        </p>
+      </section>
       <section className="section">
         <div className="section-head">
           <h2>Ranking</h2>

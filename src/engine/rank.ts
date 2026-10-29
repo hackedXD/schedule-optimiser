@@ -106,7 +106,7 @@ export function rank(schedules: Schedule[], order: CriterionId[], ctx: RankConte
 }
 
 /** Sum of option positions in ranked groups: 0 means every ranked group got its first choice. */
-export function preferenceCost(s: Schedule, groups: { options: string[]; ranked?: boolean }[]): number {
+export function preferenceCost(s: { courses: string[] }, groups: { options: string[]; ranked?: boolean }[]): number {
   let cost = 0
   for (const g of groups) {
     if (!g.ranked) continue

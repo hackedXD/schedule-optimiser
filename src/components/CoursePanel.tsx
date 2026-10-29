@@ -176,6 +176,7 @@ function CourseRow({ code, course, state, update, color, counts, onRemove, detai
             </span>
           ) : null}
           {course && noTimes ? <span className="tag warn">no times</span> : null}
+          {course && (state.difficulty[code] ?? 0) > 0 ? <span className="tag danger" title="Hard to get a seat">{state.difficulty[code] === 2 ? 'v.hard' : 'hard'}</span> : null}
           {course && <span className={`icon-btn chevron${open ? ' on' : ''}`} aria-hidden="true"><Icon name={open ? 'chevronDown' : 'chevronRight'} size={13} /></span>}
           <button className="icon-btn" title={`Remove ${displayCode(code)}`} onClick={onRemove}><Icon name="x" size={13} /></button>
         </span>
@@ -235,6 +236,17 @@ export function CourseBody({ code, course, state, update, detail, detailStatus, 
         <span className="counts">{lectures.length ? `${lectures.length} lec` : ''}{lectures.length && sections.length ? ' · ' : ''}{sections.length ? `${sections.length} sec` : ''}{counts?.paired ? <span className="tag ok" style={{ marginLeft: 6 }} title="Sections are only paired with the lecture SOC lists them under">paired</span> : null}</span>
         <RatingInput value={state.ratings[code]} title={`FCE rating for all of ${displayCode(code)}`}
           onChange={(v) => update((s) => { const r: Ratings = { ...s.ratings }; if (v === undefined) delete r[code]; else r[code] = v; return { ...s, ratings: r } })} />
+      </div>
+      <div className="row-field" style={{ padding: '0 0 0 8px' }}>
+        <span>Seat difficulty</span>
+        <span className="segmented" role="radiogroup" aria-label={`How hard ${displayCode(code)} is to get into`}>
+          {([0, 1, 2] as const).map((d) => (
+            <button key={d} role="radio" aria-checked={(state.difficulty[code] ?? 0) === d} className={(state.difficulty[code] ?? 0) === d ? 'on' : ''}
+              onClick={() => update((s) => { const difficulty = { ...s.difficulty }; if (d === 0) delete difficulty[code]; else difficulty[code] = d; return { ...s, difficulty } })}>
+              {d === 0 ? 'Easy' : d === 1 ? 'Hard' : 'Very hard'}
+            </button>
+          ))}
+        </span>
       </div>
       <label className="row-field" style={{ padding: '0 0 0 8px' }}>
         <span>Building <span className="faint">{buildingNote}</span></span>

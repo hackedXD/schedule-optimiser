@@ -517,3 +517,23 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .sio-row { display: grid; grid-template-columns: 52px 150px minmax(0, 1fr) 90px; gap: 8px; padding: 4px 8px; font-size: 11px; border-bottom: 1px solid var(--line-1); }
 .sio-row:last-child { border-bottom: 0; }
 .sio-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Availability mode ---------- */
+.segmented { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--r-2); overflow: hidden; }
+.segmented button { height: 22px; padding: 0 8px; font-size: 11px; color: var(--text-2); border-right: 1px solid var(--line-2); transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.segmented button:last-child { border-right: 0; }
+.segmented button:hover { background: var(--bg-3); color: var(--text-1); }
+.segmented button.on { background: var(--accent-soft); color: var(--accent-strong); }
+.readout.open .k .pri { background: var(--accent); color: var(--bg-0); }
+.week .ghost {
+  position: absolute; left: 3px; right: 3px; border: 1px dashed var(--c-border); border-radius: var(--r-1);
+  color: var(--c-fg); font-size: 10px; padding: 2px 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  background: repeating-linear-gradient(135deg, transparent 0 4px, rgb(255 255 255 / 0.03) 4px 6px);
+  pointer-events: auto; cursor: help;
+}
+.reg-item.open { flex-wrap: wrap; height: auto; min-height: 26px; padding: 3px 8px; gap: 5px; }
+.reg-item .opt { color: var(--text-1); padding: 0 4px; border-radius: 3px; background: var(--bg-3); font-size: 11px; }
+.reg-item .opt small { font-size: 9.5px; color: var(--text-3); }
+.reg-item .opt.available { background: var(--ok-soft); }
+.reg-item .opt.waitlist { background: var(--warn-soft); }
+.reg-item .opt.closed { background: var(--danger-soft); color: var(--text-2); }

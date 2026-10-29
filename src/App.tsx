@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Catalog, CourseDetail, FceRecord, InstructorFces, Request, Staffing } from './engine/index.ts'
-import { applyRankedGroups, conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve, staffingFromSio, surnameKey } from './engine/index.ts'
+import type { Catalog, CourseDetail, FceRecord, InstructorFces, Plan, RankedSchedule, Request, SeatLookup, Staffing } from './engine/index.ts'
+import { applyRankedGroups, compareVectors, conflictingPairs, displayCode, hardOrderOf, pairingsFrom, parseSocHtml, planAvailability, preferenceCost, rank, seatOf, semesterCode, solve, staffingFromSio, surnameKey } from './engine/index.ts'
 import { PLACES, defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
@@ -171,11 +171,45 @@ export default function App() {
     },
     dorm: state.dorm,
   }), [state.ratings, state.groups, state.buildings, state.dorm, staffings])
+  const seats = useMemo<SeatLookup>(() => {
+    const m: Record<string, ReturnType<typeof seatOf>> = {}
+    for (const [code, v] of Object.entries(state.sio)) for (const r of v.rows) m[`${code}:${r.label}`] = seatOf(r)
+    return (id) => m[id]
+  }, [state.sio])
+  const hardOrder = useMemo(() => hardOrderOf([...new Set(allCodes)], state.difficulty), [allCodes, state.difficulty])
+  const planning = state.availabilityMode && hardOrder.length > 0
+
+  // Availability-first: plans (easy picks fixed, hard courses kept open), ordered by their guarantee vector first.
+  const planResult = useMemo(() => (planning && allCodes.length ? planAvailability(catalog, request, state.ratings, pairings, state.difficulty, seats) : null), [planning, allCodes.length, catalog, request, state.ratings, pairings, state.difficulty, seats])
+
   const tiered = useMemo(() => (result ? applyRankedGroups(result.schedules, state.groups) : { kept: [], dropped: 0, cost: 0 }), [result, state.groups])
-  const ranked = useMemo(() => (result ? rank(tiered.kept, state.order, rankCtx) : []), [result, tiered, state.order, rankCtx])
+  const { ranked, planById } = useMemo(() => {
+    if (!result) return { ranked: [] as RankedSchedule[], planById: new Map<string, Plan>() }
+    if (!planResult) return { ranked: rank(tiered.kept, state.order, rankCtx), planById: new Map<string, Plan>() }
+    // Ranked groups as tiers over plans, then availability vector, then the ordinary criteria on the preferred schedule.
+    let plans = planResult.plans
+    if (state.groups.some((g) => g.ranked) && plans.length) {
+      const costs = plans.map((p) => preferenceCost(p, state.groups))
+      const best = Math.min(...costs)
+      plans = plans.filter((_, i) => costs[i] === best)
+    }
+    const scored = rank(plans.map((p) => ({ ...p.preferred, id: p.id })), state.order, rankCtx)
+    const pos = new Map(scored.map((s, i) => [s.id, i]))
+    const byId = new Map(plans.map((p) => [p.id, p]))
+    scored.sort((a, b) => compareVectors(byId.get(a.id)!.vector, byId.get(b.id)!.vector) || pos.get(a.id)! - pos.get(b.id)!)
+    scored.forEach((s, i) => (s.rank = i + 1))
+    return { ranked: scored, planById: byId }
+  }, [result, planResult, tiered, state.order, rankCtx, state.groups])
   const total = ranked.length
 
   const selected = useMemo(() => ranked.find((s) => s.id === selectedId) ?? ranked[0] ?? null, [ranked, selectedId])
+  const selectedPlan = selected ? planById.get(selected.id) ?? null : null
+  const openLabel = useCallback((id: string) => {
+    const p = planById.get(id)
+    if (!p || !p.open.length) return null
+    const o = p.open[0]
+    return { text: `${Math.round(o.guaranteed)}/${o.total}`, title: p.open.map((x) => `${displayCode(x.course)}: ${x.guaranteed.toFixed(1)} of ${x.total} options guaranteed open${x.best !== x.guaranteed ? ` (up to ${x.best.toFixed(1)})` : ''}`).join('\n') }
+  }, [planById])
   useEffect(() => { if (selected && selected.id !== selectedId) setSelectedId(selected.id) }, [selected, selectedId])
 
   const step = useCallback((delta: number) => {
@@ -219,17 +253,19 @@ export default function App() {
         <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} detailFor={detailFor} detailStatusFor={(c) => (semester ? detailStatus[`${semester}:${c}`] : undefined)}
           semester={semester} expanded={expanded} onExpand={setExpanded} fcesFor={(c) => fces[c]} fceStatusFor={(c) => fceStatus[c]} staffingFor={staffingFor} instructorFces={instructorFces} />
         <CriteriaPanel order={state.order} onChange={(order) => update((s) => ({ ...s, order }))} pittsburghOnly={state.pittsburghOnly} includeMini={state.includeMini}
+          availabilityMode={state.availabilityMode} hardCount={hardOrder.length} onAvailabilityMode={(v) => update((s) => ({ ...s, availabilityMode: v }))}
           onToggle={(k) => update((s) => ({ ...s, [k]: !s[k] }))} dorm={state.dorm} onDorm={(dorm) => update((s) => ({ ...s, dorm }))} />
       </aside>
 
       <main className="centre">
-        <RankHead schedule={selected} total={total} order={state.order} onStep={step} />
+        <RankHead schedule={selected} total={total} order={state.order} onStep={step} plan={selectedPlan} />
         {loading ? (
           <div className="grid-wrap"><div className="skeleton" style={{ height: '100%', minHeight: 560, borderRadius: 10 }} /></div>
         ) : result && total === 0 ? (
           <div className="empty">
             <div className="box">
-              <h3>No schedule fits</h3>
+              <h3>{planResult ? 'No plan keeps every hard course open' : 'No schedule fits'}</h3>
+              {planResult && planResult.unplaceable.length > 0 && <p>{planResult.unplaceable.map(displayCode).join(', ')} {planResult.unplaceable.length === 1 ? 'has' : 'have'} no takeable section after your filters.</p>}
               {result.missing.length > 0 && <p>{result.missing.map(displayCode).join(', ')} {result.missing.length === 1 ? 'is' : 'are'} not offered this semester.</p>}
               {result.unplaceable.length > 0 && <p>{result.unplaceable.map(displayCode).join(', ')} {result.unplaceable.length === 1 ? 'has' : 'have'} no section with scheduled times after your filters.</p>}
               {pairs.length > 0 && (
@@ -253,9 +289,9 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="grid-wrap"><WeekGrid schedule={selected} catalog={catalog} colorOf={colorOf} onBlockClick={setDialogCode} /></div>
+          <div className="grid-wrap"><WeekGrid schedule={selected} catalog={catalog} colorOf={colorOf} onBlockClick={setDialogCode} plan={selectedPlan} /></div>
         )}
-        <Register schedule={selected} colorOf={colorOf} />
+        <Register schedule={selected} colorOf={colorOf} plan={selectedPlan} />
       </main>
 
       <CourseDialog code={dialogCode} catalog={catalog} slots={selected && dialogCode ? selected.slots.filter((sl) => sl.course === dialogCode) : []}
@@ -268,7 +304,8 @@ export default function App() {
         onImport={(code, rows) => update((s) => ({ ...s, sio: { ...s.sio, [code]: { importedAt: new Date().toISOString(), rows } } }))} />
 
       <aside className="panel right" aria-label="Ranked schedules">
-        <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={result?.truncated ?? false} explored={result?.explored ?? 0}
+        <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={(result?.truncated ?? false) || (planResult?.truncated ?? false)} explored={result?.explored ?? 0}
+          openLabel={planResult ? openLabel : undefined}
           tierNote={tiered.dropped > 0 ? `${tiered.dropped.toLocaleString()} schedule${tiered.dropped === 1 ? '' : 's'} with lower-ranked group options hidden${tiered.cost > 0 ? '; no schedule fits the top choice in every ranked group' : ''}.` : null} />
       </aside>
     </div>

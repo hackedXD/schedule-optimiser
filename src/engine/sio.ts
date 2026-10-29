@@ -17,6 +17,8 @@ export interface SioRow {
   start: string
   end: string
   availability: string
+  waitlist: number | null
+  maxEnroll: number | null
 }
 
 export interface SioImport {
@@ -69,10 +71,26 @@ export function parseSio(text: string): SioImport {
     if (/^[A-Z]{2,4}$/.test(mid[mid.length - 1] ?? '')) delivery = mid.pop()!
     const instructors = mid.join(' ').split(/\s*;\s*/).map((s) => s.trim()).filter((s) => s && s !== '-' && !/^TBA$/i.test(s))
     const tm = TIME.exec(tokens.slice(timeAt, timeAt + 3).join(' '))!
-    const after = tokens.slice(timeAt + 3, timeAt + 6).join(' ')
-    const availability = /Waitlist|Available|Closed|Full|-/.exec(after)?.[0] ?? ''
-    rows.push({ label, mini: mini === 'Y', instructors, delivery, building, room, days, start: tm[1].toUpperCase().replace(' ', ''), end: tm[2].toUpperCase().replace(' ', ''), availability })
+    // After the time: CAN I GET IN? (word or '-'), LOCATION, SPECIAL PERMISSION (Y/N), WAITLIST (number or '-'), MAX ENROLL, UNITS.
+    const after = tokens.slice(timeAt + 3, timeAt + 12)
+    const availability = /^(Waitlist|Available|Closed|Full|-)$/i.exec(after[0] ?? '')?.[0] ?? ''
+    let waitlist: number | null = null
+    let maxEnroll: number | null = null
+    const yn = after.findIndex((t, idx) => idx > 0 && /^[YN]$/.test(t))
+    if (yn > 0) {
+      const w = after[yn + 1], m = after[yn + 2]
+      if (w !== undefined && /^\d+$/.test(w)) waitlist = Number(w)
+      if (m !== undefined && /^\d+$/.test(m)) maxEnroll = Number(m)
+    }
+    rows.push({ label, mini: mini === 'Y', instructors, delivery, building, room, days, start: tm[1].toUpperCase().replace(' ', ''), end: tm[2].toUpperCase().replace(' ', ''), availability, waitlist, maxEnroll })
     i = timeAt + 3
   }
   return { code, title, rows }
+}
+
+/** Seat state for an SIO row, for availability planning. */
+export function seatOf(row: SioRow): { state: 'available' | 'waitlist' | 'closed' | 'unknown'; waitlist: number | null; max: number | null } {
+  const a = row.availability.toLowerCase()
+  const state = a === 'available' ? 'available' : a === 'waitlist' ? 'waitlist' : a === 'closed' || a === 'full' ? 'closed' : 'unknown'
+  return { state, waitlist: row.waitlist, max: row.maxEnroll }
 }

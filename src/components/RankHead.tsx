@@ -1,5 +1,5 @@
-import type { CriterionId, RankedSchedule, Scores } from '../engine/index.ts'
-import { CRITERIA, formatClock, formatDuration } from '../engine/index.ts'
+import type { CriterionId, Plan, RankedSchedule, Scores } from '../engine/index.ts'
+import { CRITERIA, displayCode, formatClock, formatDuration } from '../engine/index.ts'
 import { Icon } from './Icon.tsx'
 
 export function formatScore(id: CriterionId, s: Scores): { text: string; none: boolean; sub?: string } {
@@ -37,9 +37,10 @@ interface Props {
   total: number
   order: CriterionId[]
   onStep: (delta: number) => void
+  plan?: Plan | null
 }
 
-export function RankHead({ schedule, total, order, onStep }: Props) {
+export function RankHead({ schedule, total, order, onStep, plan }: Props) {
   return (
     <div className="rank-head">
       <div className="rank num">
@@ -50,11 +51,17 @@ export function RankHead({ schedule, total, order, onStep }: Props) {
         <button className="icon-btn" title="Next (j / ↓)" aria-label="Next schedule" disabled={!schedule || schedule.rank >= total} onClick={() => onStep(1)}><Icon name="chevronRight" size={14} /></button>
       </div>
       <div className="readouts">
+        {plan && plan.open.map((o) => (
+          <div className="readout lead open" key={o.course} title={`${displayCode(o.course)}: ${o.guaranteed.toFixed(1)} of ${o.total} lecture+section options guaranteed open${o.best !== o.guaranteed ? `, up to ${o.best.toFixed(1)} depending on harder courses` : ''}`}>
+            <span className="k"><span className="pri num">∗</span>OPEN {displayCode(o.course)}</span>
+            <span className="v num">{Math.round(o.guaranteed)}<span className="sub">of {o.total}</span></span>
+          </div>
+        ))}
         {order.map((id, i) => {
           const c = CRITERIA.find((x) => x.id === id)!
           const v = schedule ? formatScore(id, schedule.scores) : { text: '—', none: true }
           return (
-            <div className={`readout${i === 0 ? ' lead' : ''}`} key={id} title={SCORE_TITLES[id]}>
+            <div className={`readout${i === 0 && !plan ? ' lead' : ''}`} key={id} title={SCORE_TITLES[id]}>
               <span className="k"><span className="pri num">{i + 1}</span>{c.short}</span>
               <span className={`v num${v.none ? ' none' : ''}`}>{v.text}{v.sub && <span className="sub">{v.sub}</span>}</span>
             </div>

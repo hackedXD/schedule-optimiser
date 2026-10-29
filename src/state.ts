@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ChoiceGroup, CriterionId, Ratings, SioRow } from './engine/index.ts'
+import type { ChoiceGroup, CriterionId, Difficulty, Ratings, SioRow } from './engine/index.ts'
 import { DEFAULT_ORDER } from './engine/index.ts'
 
 export interface AppState {
@@ -17,6 +17,10 @@ export interface AppState {
   dorm: string | null
   /** Course code -> rows pasted from SIO (instructors, rooms) for the planned semester. */
   sio: Record<string, { importedAt: string; rows: SioRow[] }>
+  /** Course code -> how hard it is to get a seat (0 easy, 1 hard, 2 very hard). */
+  difficulty: Record<string, Difficulty>
+  /** Availability-first planning: keep hard courses' options open, commit only easy ones. */
+  availabilityMode: boolean
 }
 
 export const EXAMPLE: Pick<AppState, 'required' | 'groups'> = {
@@ -36,6 +40,8 @@ export const INITIAL: AppState = {
   buildings: {},
   dorm: null,
   sio: {},
+  difficulty: {},
+  availabilityMode: false,
 }
 
 const KEY = 'schedule-optimiser.v1'

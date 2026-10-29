@@ -20,6 +20,8 @@ describe('parseSio', () => {
     expect(r.rows[0]).toMatchObject({ instructors: ['Kaynar', 'Sands'], delivery: 'IPE', building: 'GHC', room: '4401', days: 'TR', start: '12:30PM', end: '01:50PM', availability: '-' })
     expect(r.rows[3]).toMatchObject({ building: 'PH', room: '100' })
     expect(r.rows[4].availability).toBe('Available')
+    expect(r.rows[1]).toMatchObject({ waitlist: 0, maxEnroll: 20 })
+    expect(r.rows[0]).toMatchObject({ waitlist: null, maxEnroll: 0 })
     expect(r.rows[5]).toMatchObject({ mini: true, instructors: [], building: null, delivery: 'REO' })
   })
   it('accepts the same table flattened to whitespace, with wrapped cells', () => {

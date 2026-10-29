@@ -59,6 +59,24 @@ npm run details -- S27 21-241 18-213 15-150
 When a course's details are known, a section is only paired with the lecture
 SOC lists it under (shown as a "paired" tag in the expanded course).
 
+## Availability first
+
+Registration is section by section, and popular sections fill before your
+slot. Mark a course **Hard** or **Very hard** in its expanded row and switch on
+**Maximise chances of getting in** (Availability section). The optimiser then
+commits only to the easy courses' sections and keeps every hard course's
+lecture+section options open:
+
+- Plans are ordered by how many options stay open for the hardest course, then
+  for the next, and so on, before any other criterion. For a later hard course
+  the count is the worst case over whatever you might end up with in the harder
+  ones, so it is a guarantee, not a hope.
+- Interchangeable sections count separately: each is a seat to try for.
+- With an SIO import, open seats count 1, waitlisted 0.5, closed 0.15, so plans
+  that keep seats open beat plans that keep only waitlists open.
+- The grid draws the open options as dashed ghosts behind the preferred pick;
+  the register strip lists them in the order to try, with seat state when known.
+
 ## Ranking
 
 Criteria are compared in strict priority order. Each is quantised to a small

@@ -12,11 +12,13 @@ interface Props {
   truncated: boolean
   explored: number
   tierNote?: string | null
+  /** Availability mode: the OPEN column value for a plan id. */
+  openLabel?: (id: string) => { text: string; title: string } | null
 }
 
 const PAGE = 150
 
-export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, truncated, tierNote }: Props) {
+export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, truncated, tierNote, openLabel }: Props) {
   const [limit, setLimit] = useState(PAGE)
   const listRef = useRef<HTMLDivElement>(null)
   const positions = useRef(new Map<string, number>())
@@ -64,17 +66,19 @@ export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, trun
         <h2>Schedules</h2>
         <span className="count num">{ranked.length.toLocaleString()}</span>
       </div>
-      <div className="results-cols" aria-hidden="true" style={{ gridTemplateColumns: `34px repeat(${order.length}, minmax(0, 1fr))` }}>
+      <div className="results-cols" aria-hidden="true" style={{ gridTemplateColumns: `34px repeat(${order.length + (openLabel ? 1 : 0)}, minmax(0, 1fr))` }}>
         <span />
-        {order.map((id, i) => <span className={`c${i === 0 ? ' lead' : ''}`} key={id}>{CRITERIA.find((c) => c.id === id)!.short}</span>)}
+        {openLabel && <span className="c lead">OPEN</span>}
+        {order.map((id, i) => <span className={`c${i === 0 && !openLabel ? ' lead' : ''}`} key={id}>{CRITERIA.find((c) => c.id === id)!.short}</span>)}
       </div>
       <div className="results" ref={listRef} role="listbox" aria-label="Ranked schedules">
         {visible.map((s) => (
           <button key={s.id} data-id={s.id} role="option" aria-selected={s.id === selectedId}
             className={`result${s.id === selectedId ? ' selected' : ''}${moved.has(s.id) ? ' moved' : ''}`} onClick={() => onSelect(s.id)}
-            style={{ gridTemplateColumns: `34px repeat(${order.length}, minmax(0, 1fr))` }}>
+            style={{ gridTemplateColumns: `34px repeat(${order.length + (openLabel ? 1 : 0)}, minmax(0, 1fr))` }}>
             <span className="r num">{s.rank}</span>
-            {order.map((id, i) => { const v = formatScoreCompact(id, s.scores); const full = formatScore(id, s.scores); return <span key={id} className={`v num${i === 0 ? ' lead' : ''}${v.none ? ' none' : ''}`} title={`${full.text}${full.sub ? ` (${full.sub} rated)` : ''}`}>{v.text}</span> })}
+            {openLabel && (() => { const o = openLabel(s.id); return <span className="v num lead" title={o?.title}>{o?.text ?? '—'}</span> })()}
+            {order.map((id, i) => { const v = formatScoreCompact(id, s.scores); const full = formatScore(id, s.scores); return <span key={id} className={`v num${i === 0 && !openLabel ? ' lead' : ''}${v.none ? ' none' : ''}`} title={`${full.text}${full.sub ? ` (${full.sub} rated)` : ''}`}>{v.text}</span> })}
             <span className="codes">
               {s.courses.map((c) => {
                 const parts = s.slots.filter((sl) => sl.course === c).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'lecture' ? -1 : 1))
