@@ -35,14 +35,14 @@ export default function App() {
   const [instrStatus, setInstrStatus] = useState<Record<string, 'loading' | 'unavailable'>>({})
 
   useEffect(() => {
-    fetch('/data/soc.json').then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
+    fetch(`${import.meta.env.BASE_URL}data/soc.json`).then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
       .then((c: Catalog) => setBundled(c))
       .catch(() => setLoadError('The bundled Schedule of Classes could not be loaded. Run `npm run ingest`, or load an export.'))
   }, [])
 
   // FCE history (ScottyLabs): bundled cache first, then the dev endpoint per course.
   useEffect(() => {
-    fetch('/data/fces.json').then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, { records: FceRecord[] }>) => {
+    fetch(`${import.meta.env.BASE_URL}data/fces.json`).then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, { records: FceRecord[] }>) => {
       const byCode: Record<string, FceRecord[]> = {}
       for (const [code, v] of Object.entries(cache)) byCode[code] = v.records
       setFces((prev) => ({ ...byCode, ...prev }))
@@ -55,7 +55,7 @@ export default function App() {
 
   // Course details (description, prerequisites, lecture pairing): bundled cache first, then the dev endpoint per course.
   useEffect(() => {
-    fetch('/data/details.json').then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, CourseDetail>) => {
+    fetch(`${import.meta.env.BASE_URL}data/details.json`).then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, CourseDetail>) => {
       const byCode: Record<string, CourseDetail> = {}
       for (const d of Object.values(cache)) byCode[`${semesterCode(d.semester) ?? ''}:${d.code}`] = d
       setDetails((prev) => ({ ...byCode, ...prev }))
@@ -114,7 +114,7 @@ export default function App() {
   }, [allCodes, catalog, fces, fceStatus])
 
   useEffect(() => {
-    fetch('/data/instructor-fces.json').then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, InstructorFces>) => setInstructorFces((prev) => ({ ...cache, ...prev }))).catch(() => {})
+    fetch(`${import.meta.env.BASE_URL}data/instructor-fces.json`).then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, InstructorFces>) => setInstructorFces((prev) => ({ ...cache, ...prev }))).catch(() => {})
   }, [])
 
   // Cross-course FCEs for every surname imported from SIO.

@@ -15,6 +15,16 @@ npm run dev
 Open http://localhost:5173. Click **Load example** to try
 `21-241, 18-213, 15-150, 49-101` plus pick 1 of `17-200, 10-335, 73-102`.
 
+## Publishing
+
+Pushing to `master` runs `.github/workflows/pages.yml`, which tests, builds
+with the repository name as the base path, and deploys `dist/` to GitHub
+Pages. Enable Pages once in the repository settings with **Source: GitHub
+Actions**. The published site is static: it uses the data files committed
+under `public/data/` and cannot fetch new SOC details or FCEs, so run
+`npm run details`, `npm run fces` and `npm run ingest` locally and commit the
+results before pushing.
+
 ## Data
 
 The app ships with `public/data/soc.json`, generated from the CMU

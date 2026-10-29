@@ -43,5 +43,7 @@ function socDetails(): Plugin {
 }
 
 export default defineConfig({
+  // BASE_PATH is set by the Pages workflow to /<repo>/; local dev and preview serve from /.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), socDetails()],
 })
