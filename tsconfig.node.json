@@ -22,6 +22,7 @@
     "src/engine/detailCache.ts",
     "src/engine/parseDetail.ts",
     "src/engine/types.ts",
-    "src/engine/fce.ts"
+    "src/engine/fce.ts",
+    "src/engine/staffing.ts"
   ]
 }

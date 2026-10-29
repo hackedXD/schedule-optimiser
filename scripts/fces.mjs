@@ -1,6 +1,6 @@
-// Fetch ScottyLabs FCE history into public/data/fces.json so a production build has it.
+// Fetch ScottyLabs FCE history and past schedules (instructors, rooms) into public/data/ so a production build has them.
 // Usage: node scripts/fces.mjs 21-241 18-213 ...
-import { fetchFceCached } from '../src/engine/detailCache.ts'
+import { fetchFceCached, fetchSchedulesCached } from '../src/engine/detailCache.ts'
 import { summariseFce } from '../src/engine/fce.ts'
 
 const codes = process.argv.slice(2)
@@ -11,6 +11,7 @@ for (const raw of codes) {
   try {
     const recs = await fetchFceCached(code)
     const s = summariseFce(recs)
-    console.log(`${code}  ${recs.length} records, ${s.length} instructors${s[0] ? `, latest ${s[0].instructor} (${s[0].terms[0]})` : ''}`)
+    const terms = await fetchSchedulesCached(code)
+    console.log(`${code}  ${recs.length} FCE records, ${s.length} instructors${s[0] ? `, latest ${s[0].instructor} (${s[0].terms[0]})` : ''}; ${terms.length} past schedules`)
   } catch (e) { console.log(`${code}  failed: ${e}`) }
 }

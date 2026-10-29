@@ -16,6 +16,8 @@ export interface CourseDetail {
   pairing: Record<string, string>
   /** Section label -> mini (3/4) when the page says so. */
   minis: Record<string, Mini>
+  /** Section label -> enrollment reservation notes, as printed ('Some reservations are for Students in SCS'). */
+  reservations: Record<string, string[]>
   fetchedAt: string
 }
 
@@ -61,6 +63,16 @@ export function parseDetailHtml(html: string, fallbackCode = ''): CourseDetail |
     }
   }
 
+  const reservations: Record<string, string[]> = {}
+  const resM = /<h4>\s*Reservations\s*<\/h4>\s*<table[^>]*>(.*?)<\/table>/is.exec(html)
+  if (resM) {
+    for (const row of resM[1].split('</tr>')) {
+      const cells = [...row.matchAll(/<td[^>]*>(.*?)<\/td>/gis)].map((m) => text(m[1]))
+      if (cells.length < 2 || !cells[0]) continue
+      ;(reservations[cells[0]] ??= []).push(cells[1])
+    }
+  }
+
   const descM = /<h4>\s*Description:?\s*<\/h4>\s*<p[^>]*>(.*?)<\/p>/is.exec(html)
   const urlsM = /<dt>\s*Related URLs\s*<\/dt>\s*<dd>(.*?)<\/dd>/is.exec(html)
   const urls = urlsM ? [...urlsM[1].matchAll(/href="([^"]+)"/g)].map((m) => m[1]) : []
@@ -74,7 +86,7 @@ export function parseDetailHtml(html: string, fallbackCode = ''): CourseDetail |
     notes: field(html, 'Notes'),
     urls,
     specialPermission: /^yes/i.test(field(html, 'Special Permission Required')),
-    pairing, minis,
+    pairing, minis, reservations,
     fetchedAt: new Date().toISOString(),
   }
 }

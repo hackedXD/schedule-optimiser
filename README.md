@@ -70,10 +70,17 @@ near-ties fall through to the next criterion.
 | Group preference | positions of the chosen options in groups you marked Ranked | earlier options |
 | Walking | estimated metres per week between consecutive buildings, from and to your dorm when set | less |
 
-Walking is an estimate: SOC publishes no rooms for an upcoming semester, so
-each course is placed in its department's usual building (`src/campus.ts`),
-which you can override per course in its expanded row. Coordinates are
-hand-placed from the campus map.
+Walking is an estimate. SOC publishes no rooms for an upcoming semester, so
+each course is placed in the building it used the last time it ran (from
+ScottyLabs' past schedules, cached in `public/data/schedules.json`), or failing
+that its department's usual building (`src/campus.ts`). Override per course in
+its expanded row. Coordinates are hand-placed from the campus map.
+
+The same past schedules give the instructor for each lecture and section the
+last time the course ran in the same season, shown faintly beside each row.
+Terms from Fall 2025 onward carry no instructors or rooms, so this is a guess
+at who will teach, not the Spring 2027 assignment. Enrollment reservations from
+the SOC detail page show as a `res` tag on the reserved sections.
 
 A pick-N group can be **Equal** (options interchangeable) or **Ranked** (drag
 options into preference order; the Group preference criterion then applies).

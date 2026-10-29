@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { detailUrl, parseDetailHtml, type CourseDetail } from './parseDetail.ts'
 import { fceUrl, type FceRecord } from './fce.ts'
+import { schedulesUrl, type TermSchedule } from './staffing.ts'
 
 export const DETAILS_CACHE = 'public/data/details.json'
 const UA = 'schedule-optimiser (personal, local; one request per course)'
@@ -50,4 +51,22 @@ export async function fetchFceCached(code: string, path = FCE_CACHE): Promise<Fc
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, JSON.stringify(cache))
   return records
+}
+
+export const SCHEDULES_CACHE = 'public/data/schedules.json'
+export type SchedulesCache = Record<string, { fetchedAt: string; terms: TermSchedule[] }>
+
+/** Past-term schedules (instructors, rooms) for a course, cached on disk. Throws on network failure. */
+export async function fetchSchedulesCached(code: string, path = SCHEDULES_CACHE): Promise<TermSchedule[]> {
+  let cache: SchedulesCache = {}
+  try { cache = existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as SchedulesCache) : {} } catch { cache = {} }
+  if (cache[code]) return cache[code].terms
+  const res = await fetch(schedulesUrl(code), { headers: { 'user-agent': UA } })
+  if (!res.ok) throw new Error(`ScottyLabs schedules API ${res.status}`)
+  const body = (await res.json()) as unknown
+  const terms = Array.isArray(body) ? (body as TermSchedule[]) : []
+  cache[code] = { fetchedAt: new Date().toISOString(), terms }
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, JSON.stringify(cache))
+  return terms
 }

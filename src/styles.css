@@ -498,3 +498,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .offering.taking .label { color: var(--accent-strong); }
 .offering.taking:hover { background: var(--accent-soft); }
 .course-dialog .offering-group h4, .course-dialog .fce-history h4 { padding-left: 8px; }
+
+.offering .when .staff { color: var(--text-3); }
+.offering .when .tag.res { margin-left: 6px; height: 15px; padding: 0 4px; font-size: 9.5px; vertical-align: 1px; cursor: help; }
+.help .tag.res { height: 15px; padding: 0 4px; font-size: 9.5px; vertical-align: 1px; }

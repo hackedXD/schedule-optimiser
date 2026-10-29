@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Catalog, CourseDetail, FceRecord, Request } from './engine/index.ts'
-import { conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
-import { defaultBuilding } from './campus.ts'
+import type { Catalog, CourseDetail, FceRecord, Request, Staffing, TermSchedule } from './engine/index.ts'
+import { conflictingPairs, displayCode, latestStaffing, pairingsFrom, parseSocHtml, rank, seasonOf, semesterCode, solve } from './engine/index.ts'
+import { PLACES, defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
 import { TopBar } from './components/TopBar.tsx'
@@ -29,6 +29,8 @@ export default function App() {
   const [detailStatus, setDetailStatus] = useState<Record<string, 'loading' | 'missing' | 'unavailable'>>({})
   const [fces, setFces] = useState<Record<string, FceRecord[]>>({})
   const [fceStatus, setFceStatus] = useState<Record<string, 'loading' | 'unavailable'>>({})
+  const [schedules, setSchedules] = useState<Record<string, TermSchedule[]>>({})
+  const [schedStatus, setSchedStatus] = useState<Record<string, 'loading' | 'unavailable'>>({})
 
   useEffect(() => {
     fetch('/data/soc.json').then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
@@ -42,6 +44,14 @@ export default function App() {
       const byCode: Record<string, FceRecord[]> = {}
       for (const [code, v] of Object.entries(cache)) byCode[code] = v.records
       setFces((prev) => ({ ...byCode, ...prev }))
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch('/data/schedules.json').then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, { terms: TermSchedule[] }>) => {
+      const byCode: Record<string, TermSchedule[]> = {}
+      for (const [code, v] of Object.entries(cache)) byCode[code] = v.terms
+      setSchedules((prev) => ({ ...byCode, ...prev }))
     }).catch(() => {})
   }, [])
 
@@ -109,6 +119,35 @@ export default function App() {
     return () => { cancelled = true }
   }, [allCodes, catalog, fces, fceStatus])
 
+  useEffect(() => {
+    let cancelled = false
+    const todo = allCodes.filter((c) => catalog.courses[c] && !schedules[c] && !schedStatus[c])
+    if (!todo.length) return
+    setSchedStatus((s) => ({ ...s, ...Object.fromEntries(todo.map((c) => [c, 'loading' as const])) }))
+    ;(async () => {
+      for (const code of todo) {
+        try {
+          const r = await fetch(`/api/schedules?course=${code}`)
+          if (cancelled) return
+          if (r.ok) {
+            const terms = (await r.json()) as TermSchedule[]
+            setSchedules((prev) => ({ ...prev, [code]: terms }))
+            setSchedStatus((s) => { const n = { ...s }; delete n[code]; return n })
+          } else setSchedStatus((s) => ({ ...s, [code]: 'unavailable' }))
+        } catch { if (!cancelled) setSchedStatus((s) => ({ ...s, [code]: 'unavailable' })) }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [allCodes, catalog, schedules, schedStatus])
+
+  const season = seasonOf(catalog.semester)
+  const staffings = useMemo(() => {
+    const m: Record<string, Staffing | null> = {}
+    for (const [code, terms] of Object.entries(schedules)) m[code] = latestStaffing(terms, season)
+    return m
+  }, [schedules, season])
+  const staffingFor = useCallback((code: string) => staffings[code] ?? null, [staffings])
+
   const pairings = useMemo(() => {
     const m: Record<string, CourseDetail | undefined> = {}
     for (const c of allCodes) m[c] = detailFor(c)
@@ -125,9 +164,14 @@ export default function App() {
   const rankCtx = useMemo(() => ({
     ratings: state.ratings,
     groups: state.groups,
-    buildingOf: (code: string) => state.buildings[code] ?? defaultBuilding(code),
+    buildingOf: (code: string) => {
+      if (state.buildings[code]) return state.buildings[code]
+      const st = staffings[code]
+      const fromRooms = st ? [...Object.values(st.lectures), ...Object.values(st.sections)].map((x) => x.building).find((b) => b && PLACES[b]) : null
+      return fromRooms ?? defaultBuilding(code)
+    },
     dorm: state.dorm,
-  }), [state.ratings, state.groups, state.buildings, state.dorm])
+  }), [state.ratings, state.groups, state.buildings, state.dorm, staffings])
   const ranked = useMemo(() => (result ? rank(result.schedules, state.order, rankCtx) : []), [result, state.order, rankCtx])
   const total = ranked.length
 
@@ -173,7 +217,7 @@ export default function App() {
       <aside className="panel left" aria-label="Inputs">
         {loadError && <div className="section"><div className="banner danger"><Icon name="alert" size={14} />{loadError}</div></div>}
         <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} detailFor={detailFor} detailStatusFor={(c) => (semester ? detailStatus[`${semester}:${c}`] : undefined)}
-          semester={semester} expanded={expanded} onExpand={setExpanded} fcesFor={(c) => fces[c]} fceStatusFor={(c) => fceStatus[c]} />
+          semester={semester} expanded={expanded} onExpand={setExpanded} fcesFor={(c) => fces[c]} fceStatusFor={(c) => fceStatus[c]} staffingFor={staffingFor} />
         <CriteriaPanel order={state.order} onChange={(order) => update((s) => ({ ...s, order }))} pittsburghOnly={state.pittsburghOnly} includeMini={state.includeMini}
           onToggle={(k) => update((s) => ({ ...s, [k]: !s[k] }))} dorm={state.dorm} onDorm={(dorm) => update((s) => ({ ...s, dorm }))} />
       </aside>
@@ -217,7 +261,7 @@ export default function App() {
       <CourseDialog code={dialogCode} catalog={catalog} slots={selected && dialogCode ? selected.slots.filter((sl) => sl.course === dialogCode) : []}
         detail={dialogCode ? detailFor(dialogCode) : undefined} status={dialogCode && semester ? detailStatus[`${semester}:${dialogCode}`] : undefined}
         semester={semester} color={colorOf(dialogCode ?? '')} state={state} update={update} counts={dialogCode ? result?.slotCounts[dialogCode] : undefined}
-        fces={dialogCode ? fces[dialogCode] : undefined} fceStatus={dialogCode ? fceStatus[dialogCode] : undefined}
+        fces={dialogCode ? fces[dialogCode] : undefined} fceStatus={dialogCode ? fceStatus[dialogCode] : undefined} staffing={dialogCode ? staffingFor(dialogCode) : null}
         onClose={() => setDialogCode(null)} />
 
       <aside className="panel right" aria-label="Ranked schedules">

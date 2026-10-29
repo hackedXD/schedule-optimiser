@@ -19,6 +19,9 @@ describe('parseDetailHtml', () => {
     expect(d.pairing.L).toBe('Lec 1')
     expect(d.pairing.M).toBe('Lec 2')
     expect(d.pairing.U).toBe('Lec 2')
+    expect(d.reservations.A).toEqual(['Some reservations are for Students in SCS'])
+    expect(d.reservations.M).toHaveLength(6)
+    expect(Object.keys(d.reservations)).toHaveLength(21)
   })
   it('pairs three lectures for 21-241 and handles a lecture-less course', () => {
     const d = parseDetailHtml(fx('21241'))!
@@ -26,6 +29,7 @@ describe('parseDetailHtml', () => {
     expect(d.pairing.E).toBe('Lec 2')
     const s = parseDetailHtml(fx('10335'))!
     expect(s.pairing).toEqual({})
+    expect(Object.keys(s.reservations)).toEqual(['A'])
     expect(s.description.startsWith('ARS, the Latin root')).toBe(true)
   })
   it('returns null on the SOC error page', () => {

@@ -31,6 +31,7 @@ Exhaustive enumeration with a user-reorderable priority list. Unlike picking sec
 - Times are `hh:mmAM/PM`, 12-hour.
 - Locations include Pittsburgh plus Doha, San Jose, Kigali, New York, Washington DC, Lisbon. The student is in Pittsburgh; other campuses are noise for them.
 - The export has no instructor column. Faculty Course Evaluation (FCE) data lives elsewhere at CMU and is not yet part of this tool.
+- Instructors per lecture/section: no public source for Spring 2027 (SOC, its search, and ScottyLabs' schedules all carry empty instructors and rooms from Fall 2025 on; SIO requires an Andrew login). ScottyLabs' schedules endpoint (`/schedules?courseID=15-150`) has instructors, buildings and rooms per lecture and section for terms through Spring 2025, used as "last time this ran" staffing and as the walking building.
 - The SOC course-details page (`enr-apps.as.cmu.edu/open/SOC/SOCServlet/courseDetails?COURSE=<code>&SEMESTER=<S27>`) is public and carries the description, prerequisites, corequisites, cross-listings, notes, related URLs, special-permission flag, enrollment reservations and the lecture/section grouping. It has no instructor either. An unknown course returns HTTP 500. The tool fetches it once per requested course, server-side, and caches it in `public/data/details.json`.
 - Students write course codes as `21-241`; the export stores them as `21241`. Both forms must be accepted.
 
