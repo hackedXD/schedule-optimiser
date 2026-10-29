@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "ingest": "node --no-warnings scripts/ingest.mjs",
-    "details": "node --no-warnings scripts/details.mjs"
+    "details": "node --no-warnings scripts/details.mjs",
+    "fces": "node --no-warnings scripts/fces.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

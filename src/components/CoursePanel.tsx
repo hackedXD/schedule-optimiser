@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
-import type { Catalog, ChoiceGroup, Course, CourseDetail, Offering, Ratings } from '../engine/index.ts'
+import type { Catalog, ChoiceGroup, Course, CourseDetail, FceRecord, Offering, Ratings } from '../engine/index.ts'
+import { FceHistory, type FceStatus } from './FceHistory.tsx'
 import { detailUrl, displayCode, formatMeeting, formatMeetingCompact, normaliseCode } from '../engine/index.ts'
 import { BUILDINGS, defaultBuilding } from '../campus.ts'
 import { Icon } from './Icon.tsx'
@@ -20,6 +21,8 @@ interface Props {
   semester: string | null
   expanded: string | null
   onExpand: (code: string | null) => void
+  fcesFor: (code: string) => FceRecord[] | undefined
+  fceStatusFor: (code: string) => FceStatus
 }
 
 function parseCodes(text: string): { codes: string[]; bad: string[] } {
@@ -130,12 +133,13 @@ interface RowProps {
   color: { fg: string }; counts?: { lectures: number; sections: number; paired?: boolean }; onRemove: () => void
   detail: CourseDetail | undefined; detailStatus: DetailStatus; semester: string | null
   open: boolean; onToggle: () => void
+  fces: FceRecord[] | undefined; fceStatus: FceStatus
   /** Rank badge for options in a ranked group. */
   rank?: number
   dragProps?: Record<string, unknown>
 }
 
-function CourseRow({ code, course, state, update, color, counts, onRemove, detail, detailStatus, semester, open, onToggle, rank, dragProps }: RowProps) {
+function CourseRow({ code, course, state, update, color, counts, onRemove, detail, detailStatus, semester, open, onToggle, fces, fceStatus, rank, dragProps }: RowProps) {
   const lectures = course?.offerings.filter((o) => o.kind === 'lecture') ?? []
   const sections = course?.offerings.filter((o) => o.kind === 'section') ?? []
   const noTimes = course && counts && counts.lectures + counts.sections === 0
@@ -179,6 +183,7 @@ function CourseRow({ code, course, state, update, color, counts, onRemove, detai
             <RatingInput value={state.ratings[code]} title={`FCE rating for all of ${displayCode(code)}`}
               onChange={(v) => update((s) => { const r: Ratings = { ...s.ratings }; if (v === undefined) delete r[code]; else r[code] = v; return { ...s, ratings: r } })} />
           </div>
+          <FceHistory records={fces} status={fceStatus} current={state.ratings[code]} onApply={(v) => update((s) => ({ ...s, ratings: { ...s.ratings, [code]: v } }))} />
           <label className="row-field" style={{ padding: '0 0 0 8px' }}>
             <span>Building <span className="faint">{state.buildings[code] ? '' : '(estimate)'}</span></span>
             <select className="select" value={building ?? ''} aria-label={`Building for ${displayCode(code)}`}
@@ -200,7 +205,7 @@ function CourseRow({ code, course, state, update, color, counts, onRemove, detai
 }
 
 function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: number; props: Props; patch: (f: (g: ChoiceGroup) => ChoiceGroup) => void; remove: () => void }) {
-  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand } = props
+  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand, fcesFor, fceStatusFor } = props
   const drag = useRowDrag((from, to) => patch((x) => ({ ...x, options: move(x.options, from, to) })))
   const [adding, setAdding] = useState(g.options.length === 0)
   return (
@@ -225,7 +230,7 @@ function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: numb
         {g.options.map((code, i) => (
           <div key={code} className={`drag-row${g.ranked ? drag.cls(i) : ''}`}>
             <CourseRow code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]}
-              detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester}
+              detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester} fces={fcesFor(code)} fceStatus={fceStatusFor(code)}
               open={expanded === code} onToggle={() => onExpand(expanded === code ? null : code)}
               rank={g.ranked ? i + 1 : undefined} dragProps={g.ranked ? drag.props(i) : undefined}
               onRemove={() => patch((x) => ({ ...x, options: x.options.filter((c) => c !== code), pick: Math.min(x.pick, Math.max(0, x.options.length - 1)) }))} />
@@ -244,7 +249,7 @@ function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: numb
 }
 
 export function CoursePanel(props: Props) {
-  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand } = props
+  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand, fcesFor, fceStatusFor } = props
   const addRequired = (codes: string[]) => update((s) => ({ ...s, required: [...new Set([...s.required, ...codes])] }))
   const addGroup = () => update((s) => ({ ...s, groups: [...s.groups, { id: newId(), pick: 1, options: [] }] }))
   const patchGroup = (id: string, f: (g: ChoiceGroup) => ChoiceGroup) => update((s) => ({ ...s, groups: s.groups.map((g) => (g.id === id ? f(g) : g)) }))
@@ -266,7 +271,7 @@ export function CoursePanel(props: Props) {
       <div className="course-list">
         {state.required.map((code) => (
           <CourseRow key={code} code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]}
-            detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester}
+            detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester} fces={fcesFor(code)} fceStatus={fceStatusFor(code)}
             open={expanded === code} onToggle={() => onExpand(expanded === code ? null : code)}
             onRemove={() => update((s) => ({ ...s, required: s.required.filter((c) => c !== code) }))} />
         ))}

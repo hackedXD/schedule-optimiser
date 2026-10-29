@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import type { Catalog, CourseDetail, Ratings, Slot } from '../engine/index.ts'
+import type { Catalog, CourseDetail, FceRecord, Ratings, Slot } from '../engine/index.ts'
+import { FceHistory, type FceStatus } from './FceHistory.tsx'
 import { detailUrl, displayCode, formatMeeting } from '../engine/index.ts'
 import { About, RatingInput, type DetailStatus } from './CoursePanel.tsx'
 import { Icon } from './Icon.tsx'
@@ -15,10 +16,12 @@ interface Props {
   color: { fg: string }
   ratings: Ratings
   onRate: (key: string, value: number | undefined) => void
+  fces: FceRecord[] | undefined
+  fceStatus: FceStatus
   onClose: () => void
 }
 
-export function CourseDialog({ code, catalog, slots, detail, status, semester, color, ratings, onRate, onClose }: Props) {
+export function CourseDialog({ code, catalog, slots, detail, status, semester, color, ratings, onRate, fces, fceStatus, onClose }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const d = ref.current
@@ -36,6 +39,7 @@ export function CourseDialog({ code, catalog, slots, detail, status, semester, c
             <h3 id="course-dialog-title"><span className="code">{displayCode(code)}</span> {course?.title ?? detail?.title ?? ''}</h3>
             <button className="icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" size={14} /></button>
           </header>
+          <div className="dialog-scroll">
           {course && (
             <dl className="dialog-meta">
               <dt>Units</dt><dd>{course.units}</dd>
@@ -57,7 +61,9 @@ export function CourseDialog({ code, catalog, slots, detail, status, semester, c
               ))}
             </dl>
           )}
+          <FceHistory records={fces} status={fceStatus} current={ratings[code]} onApply={(v) => onRate(code, v)} />
           <About detail={detail} status={status} code={code} semester={semester} />
+          </div>
           <footer className="dialog-foot">
             <span className="faint">Esc to close</span>
             {semester && <a className="btn sm" href={detailUrl(code, semester)} target="_blank" rel="noreferrer"><Icon name="external" size={12} /> Open on SOC</a>}

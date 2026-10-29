@@ -28,9 +28,18 @@ npm run ingest -- path/to/export.html
 You can also load an export straight into the running app with **Load export**
 in the top bar (parsed in the browser, kept in memory only).
 
-The export has no instructor column, so FCE ratings are entered manually:
-expand a course in the left panel and type a rating for the whole course or for
-individual lectures and sections. Unrated sections count as neutral.
+The export has no instructor column, so the app cannot know who teaches which
+section. Instead it shows each course's FCE history from the ScottyLabs course
+API (the data behind cmucourses.com): one row per instructor with their mean
+overall-teaching and overall-course scores over their last three terms. Click
+**Use** to apply an instructor's teaching score as the course rating, or type a
+rating for the whole course, a lecture or a section. Unrated sections count as
+neutral. The dev server fetches FCE history per course and caches it in
+`public/data/fces.json`; for a production build prefetch with:
+
+```bash
+npm run fces -- 21-241 18-213 15-150
+```
 
 ## Course details
 

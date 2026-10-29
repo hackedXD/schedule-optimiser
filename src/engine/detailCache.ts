@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { detailUrl, parseDetailHtml, type CourseDetail } from './parseDetail.ts'
+import { fceUrl, type FceRecord } from './fce.ts'
 
 export const DETAILS_CACHE = 'public/data/details.json'
 const UA = 'schedule-optimiser (personal, local; one request per course)'
@@ -31,4 +32,22 @@ export async function fetchDetailCached(code: string, semester: string, path = D
   cache[key] = detail
   writeCache(cache, path)
   return detail
+}
+
+export const FCE_CACHE = 'public/data/fces.json'
+export type FceCache = Record<string, { fetchedAt: string; records: FceRecord[] }>
+
+/** FCE records for a course (cached on disk); [] when ScottyLabs has none. Throws on network failure. */
+export async function fetchFceCached(code: string, path = FCE_CACHE): Promise<FceRecord[]> {
+  let cache: FceCache = {}
+  try { cache = existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as FceCache) : {} } catch { cache = {} }
+  if (cache[code]) return cache[code].records
+  const res = await fetch(fceUrl(code), { headers: { 'user-agent': UA } })
+  if (!res.ok) throw new Error(`ScottyLabs FCE API ${res.status}`)
+  const body = (await res.json()) as unknown
+  const records = Array.isArray(body) ? (body as FceRecord[]) : []
+  cache[code] = { fetchedAt: new Date().toISOString(), records }
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, JSON.stringify(cache))
+  return records
 }

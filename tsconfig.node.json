@@ -21,6 +21,7 @@
     "vite.config.ts",
     "src/engine/detailCache.ts",
     "src/engine/parseDetail.ts",
-    "src/engine/types.ts"
+    "src/engine/types.ts",
+    "src/engine/fce.ts"
   ]
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Catalog, CourseDetail, Request } from './engine/index.ts'
+import type { Catalog, CourseDetail, FceRecord, Request } from './engine/index.ts'
 import { conflictingPairs, displayCode, pairingsFrom, parseSocHtml, rank, semesterCode, solve } from './engine/index.ts'
 import { defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
@@ -27,11 +27,22 @@ export default function App() {
   const [dialogCode, setDialogCode] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, CourseDetail>>({})
   const [detailStatus, setDetailStatus] = useState<Record<string, 'loading' | 'missing' | 'unavailable'>>({})
+  const [fces, setFces] = useState<Record<string, FceRecord[]>>({})
+  const [fceStatus, setFceStatus] = useState<Record<string, 'loading' | 'unavailable'>>({})
 
   useEffect(() => {
     fetch('/data/soc.json').then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
       .then((c: Catalog) => setBundled(c))
       .catch(() => setLoadError('The bundled Schedule of Classes could not be loaded. Run `npm run ingest`, or load an export.'))
+  }, [])
+
+  // FCE history (ScottyLabs): bundled cache first, then the dev endpoint per course.
+  useEffect(() => {
+    fetch('/data/fces.json').then((r) => (r.ok ? r.json() : {})).then((cache: Record<string, { records: FceRecord[] }>) => {
+      const byCode: Record<string, FceRecord[]> = {}
+      for (const [code, v] of Object.entries(cache)) byCode[code] = v.records
+      setFces((prev) => ({ ...byCode, ...prev }))
+    }).catch(() => {})
   }, [])
 
   const catalog = custom?.catalog ?? bundled ?? EMPTY_CATALOG
@@ -76,6 +87,29 @@ export default function App() {
     })()
     return () => { cancelled = true }
   }, [allCodes, catalog, semester, details, detailStatus])
+
+  useEffect(() => {
+    let cancelled = false
+    const todo = allCodes.filter((c) => catalog.courses[c] && !fces[c] && !fceStatus[c])
+    if (!todo.length) return
+    setFceStatus((s) => ({ ...s, ...Object.fromEntries(todo.map((c) => [c, 'loading' as const])) }))
+    ;(async () => {
+      for (const code of todo) {
+        try {
+          const r = await fetch(`/api/fce?course=${code}`)
+          if (cancelled) return
+          if (r.ok) {
+            const recs = (await r.json()) as FceRecord[]
+            setFces((prev) => ({ ...prev, [code]: recs }))
+            setFceStatus((s) => { const n = { ...s }; delete n[code]; return n })
+          } else setFceStatus((s) => ({ ...s, [code]: 'unavailable' }))
+        } catch { if (!cancelled) setFceStatus((s) => ({ ...s, [code]: 'unavailable' })) }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [allCodes, catalog, fces, fceStatus])
+
+  const applyRating = useCallback((key: string, v: number | undefined) => update((s) => { const r = { ...s.ratings }; if (v === undefined) delete r[key]; else r[key] = v; return { ...s, ratings: r } }), [update])
 
   const pairings = useMemo(() => {
     const m: Record<string, CourseDetail | undefined> = {}
@@ -141,7 +175,7 @@ export default function App() {
       <aside className="panel left" aria-label="Inputs">
         {loadError && <div className="section"><div className="banner danger"><Icon name="alert" size={14} />{loadError}</div></div>}
         <CoursePanel catalog={catalog} state={state} update={update} colorOf={colorOf} slotCounts={result?.slotCounts ?? {}} detailFor={detailFor} detailStatusFor={(c) => (semester ? detailStatus[`${semester}:${c}`] : undefined)}
-          semester={semester} expanded={expanded} onExpand={setExpanded} />
+          semester={semester} expanded={expanded} onExpand={setExpanded} fcesFor={(c) => fces[c]} fceStatusFor={(c) => fceStatus[c]} />
         <CriteriaPanel order={state.order} onChange={(order) => update((s) => ({ ...s, order }))} pittsburghOnly={state.pittsburghOnly} includeMini={state.includeMini}
           onToggle={(k) => update((s) => ({ ...s, [k]: !s[k] }))} dorm={state.dorm} onDorm={(dorm) => update((s) => ({ ...s, dorm }))} />
       </aside>
@@ -184,8 +218,8 @@ export default function App() {
 
       <CourseDialog code={dialogCode} catalog={catalog} slots={selected && dialogCode ? selected.slots.filter((sl) => sl.course === dialogCode) : []}
         detail={dialogCode ? detailFor(dialogCode) : undefined} status={dialogCode && semester ? detailStatus[`${semester}:${dialogCode}`] : undefined}
-        semester={semester} color={colorOf(dialogCode ?? '')} ratings={state.ratings}
-        onRate={(key, v) => update((s) => { const r = { ...s.ratings }; if (v === undefined) delete r[key]; else r[key] = v; return { ...s, ratings: r } })}
+        semester={semester} color={colorOf(dialogCode ?? '')} ratings={state.ratings} onRate={applyRating}
+        fces={dialogCode ? fces[dialogCode] : undefined} fceStatus={dialogCode ? fceStatus[dialogCode] : undefined}
         onClose={() => setDialogCode(null)} />
 
       <aside className="panel right" aria-label="Ranked schedules">

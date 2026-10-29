@@ -1,12 +1,20 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import { fetchDetailCached } from './src/engine/detailCache.ts'
+import { fetchDetailCached, fetchFceCached } from './src/engine/detailCache.ts'
 
 /** Dev-only endpoint: GET /api/detail?course=15150&semester=S27 -> CourseDetail JSON, cached in public/data/details.json. */
 function socDetails(): Plugin {
   return {
     name: 'soc-details',
     configureServer(server) {
+      server.middlewares.use('/api/fce', async (req, res) => {
+        const url = new URL(req.url ?? '/', 'http://localhost')
+        const code = url.searchParams.get('course') ?? ''
+        res.setHeader('content-type', 'application/json')
+        if (!/^\d{5}$/.test(code)) { res.statusCode = 400; res.end(JSON.stringify({ error: 'bad course' })); return }
+        try { res.end(JSON.stringify(await fetchFceCached(code))) }
+        catch (e) { res.statusCode = 502; res.end(JSON.stringify({ error: String(e) })) }
+      })
       server.middlewares.use('/api/detail', async (req, res) => {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const code = url.searchParams.get('course') ?? ''
