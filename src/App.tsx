@@ -184,7 +184,9 @@ export default function App() {
 
       <CourseDialog code={dialogCode} catalog={catalog} slots={selected && dialogCode ? selected.slots.filter((sl) => sl.course === dialogCode) : []}
         detail={dialogCode ? detailFor(dialogCode) : undefined} status={dialogCode && semester ? detailStatus[`${semester}:${dialogCode}`] : undefined}
-        semester={semester} color={colorOf(dialogCode ?? '')} onClose={() => setDialogCode(null)} />
+        semester={semester} color={colorOf(dialogCode ?? '')} ratings={state.ratings}
+        onRate={(key, v) => update((s) => { const r = { ...s.ratings }; if (v === undefined) delete r[key]; else r[key] = v; return { ...s, ratings: r } })}
+        onClose={() => setDialogCode(null)} />
 
       <aside className="panel right" aria-label="Ranked schedules">
         <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={result?.truncated ?? false} explored={result?.explored ?? 0} />

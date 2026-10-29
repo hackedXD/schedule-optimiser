@@ -57,7 +57,7 @@ function CodeInput({ placeholder, onAdd, inline, onClose }: { placeholder: strin
   )
 }
 
-function RatingInput({ value, onChange, title }: { value: number | undefined; onChange: (v: number | undefined) => void; title: string }) {
+export function RatingInput({ value, onChange, title }: { value: number | undefined; onChange: (v: number | undefined) => void; title: string }) {
   return (
     <input className="num-input" type="number" min={1} max={5} step={0.1} inputMode="decimal" placeholder="—" title={title} aria-label={title}
       value={value ?? ''} onClick={(e) => e.stopPropagation()}

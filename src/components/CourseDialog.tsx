@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import type { Catalog, CourseDetail, Slot } from '../engine/index.ts'
+import type { Catalog, CourseDetail, Ratings, Slot } from '../engine/index.ts'
 import { detailUrl, displayCode, formatMeeting } from '../engine/index.ts'
-import { About, type DetailStatus } from './CoursePanel.tsx'
+import { About, RatingInput, type DetailStatus } from './CoursePanel.tsx'
 import { Icon } from './Icon.tsx'
 
 interface Props {
@@ -13,10 +13,12 @@ interface Props {
   status: DetailStatus
   semester: string | null
   color: { fg: string }
+  ratings: Ratings
+  onRate: (key: string, value: number | undefined) => void
   onClose: () => void
 }
 
-export function CourseDialog({ code, catalog, slots, detail, status, semester, color, onClose }: Props) {
+export function CourseDialog({ code, catalog, slots, detail, status, semester, color, ratings, onRate, onClose }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const d = ref.current
@@ -38,10 +40,19 @@ export function CourseDialog({ code, catalog, slots, detail, status, semester, c
             <dl className="dialog-meta">
               <dt>Units</dt><dd>{course.units}</dd>
               <dt>Dept</dt><dd>{course.department}</dd>
+              <dt>FCE</dt>
+              <dd className="rate-row">
+                <span>Whole course</span>
+                <RatingInput value={ratings[code]} title={`FCE rating for all of ${displayCode(code)}`} onChange={(v) => onRate(code, v)} />
+              </dd>
               {slots.map((sl) => (
                 <span key={sl.offerings[0].id} style={{ display: 'contents' }}>
                   <dt>{sl.kind === 'lecture' ? 'Lecture' : 'Section'}</dt>
-                  <dd>{sl.offerings.map((o) => o.label).join(' / ')} · {sl.meetings.map(formatMeeting).join(' · ')}{sl.mini ? ` · mini ${sl.mini}` : ''}</dd>
+                  <dd className="rate-row">
+                    <span>{sl.offerings.map((o) => o.label).join(' / ')} · {sl.meetings.map(formatMeeting).join(' · ')}{sl.mini ? ` · mini ${sl.mini}` : ''}</span>
+                    <RatingInput value={ratings[sl.offerings[0].id]} title={`FCE rating for ${displayCode(code)} ${sl.offerings[0].label}`}
+                      onChange={(v) => { for (const o of sl.offerings) onRate(o.id, v) }} />
+                  </dd>
                 </span>
               ))}
             </dl>
