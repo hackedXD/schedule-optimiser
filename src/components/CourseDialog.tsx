@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { Catalog, CourseDetail, FceRecord, Slot, Staffing } from '../engine/index.ts'
+import type { Catalog, CourseDetail, FceRecord, InstructorFces, Slot, Staffing } from '../engine/index.ts'
 import type { FceStatus } from './FceHistory.tsx'
 import { detailUrl, displayCode } from '../engine/index.ts'
 import { CourseBody, type DetailStatus } from './CoursePanel.tsx'
@@ -21,10 +21,11 @@ interface Props {
   fceStatus: FceStatus
   counts?: { lectures: number; sections: number; paired?: boolean }
   staffing: Staffing | null
+  instructorFces: Record<string, InstructorFces>
   onClose: () => void
 }
 
-export function CourseDialog({ code, catalog, slots, detail, status, semester, color, state, update, fces, fceStatus, counts, staffing, onClose }: Props) {
+export function CourseDialog({ code, catalog, slots, detail, status, semester, color, state, update, fces, fceStatus, counts, staffing, instructorFces, onClose }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const d = ref.current
@@ -51,7 +52,7 @@ export function CourseDialog({ code, catalog, slots, detail, status, semester, c
             )}
             {course && (
               <CourseBody code={code} course={course} state={state} update={update} detail={detail} detailStatus={status} semester={semester}
-                fces={fces} fceStatus={fceStatus} counts={counts} layout="dialog" staffing={staffing} taking={new Set(slots.flatMap((sl) => sl.offerings.map((o) => o.id)))} />
+                fces={fces} fceStatus={fceStatus} counts={counts} layout="dialog" staffing={staffing} instructorFces={instructorFces} taking={new Set(slots.flatMap((sl) => sl.offerings.map((o) => o.id)))} />
             )}
           </div>
           <footer className="dialog-foot">

@@ -1,31 +1,20 @@
 import { describe, it, expect } from 'vitest'
-import { latestStaffing, seasonOf, staffName, type TermSchedule } from './staffing.ts'
-
-const term = (year: string, semester: string, lecInstr: string[], bld: string | null): TermSchedule => ({
-  courseID: '15-150', year, semester,
-  lectures: [{ name: 'Lec 1', instructors: lecInstr, times: [{ days: [1, 3], begin: '9:00AM', end: '9:50AM', building: bld, room: bld ? '2210' : null }] }],
-  sections: [{ name: 'A', lecture: 'Lec 1', instructors: lecInstr, times: [] }],
-})
+import { staffingFromSio, surnameKey, taughtBy, staffName } from './staffing.ts'
 
 describe('staffing', () => {
-  it('prefers the newest same-season term that has instructors', () => {
-    const s = latestStaffing([
-      term('2027', 'spring', [], null), term('2025', 'fall', ['Brookes, Stephen'], 'GHC'),
-      term('2025', 'spring', ['Erdmann, Michael'], 'DH'), term('2024', 'spring', ['Crary, Karl'], 'WEH'),
-    ], 'spring')!
-    expect(s.term).toBe('Spring 2025')
-    expect(s.sameSeason).toBe(true)
-    expect(s.lectures['Lec 1']).toEqual({ instructors: ['Erdmann, Michael'], building: 'DH', room: '2210' })
-    expect(s.sections.A.instructors).toEqual(['Erdmann, Michael'])
+  it('builds staffing from SIO rows and maps surnames to what they teach', () => {
+    const st = staffingFromSio([
+      { label: 'Lec 1', instructors: ['Kaynar', 'Sands'], building: 'GHC', room: '4401' },
+      { label: 'A', instructors: ['Kaynar', 'Sands'], building: 'GHC', room: '5208' },
+      { label: 'B', instructors: ['Grodin'], building: null, room: null },
+    ], 'SIO · Spring 2027')
+    expect(Object.keys(st.lectures)).toEqual(['Lec 1'])
+    expect(Object.keys(st.sections)).toEqual(['A', 'B'])
+    expect(taughtBy(st)).toEqual({ KAYNAR: ['Lec 1', 'A'], SANDS: ['Lec 1', 'A'], GRODIN: ['B'] })
   })
-  it('falls back to any season and ignores TBA', () => {
-    const s = latestStaffing([term('2025', 'fall', ['Brookes, Stephen'], 'GHC'), term('2026', 'spring', ['TBA'], null)], 'spring')!
-    expect(s.term).toBe('Fall 2025')
-    expect(s.sameSeason).toBe(false)
-    expect(latestStaffing([term('2027', 'spring', [], null)], 'spring')).toBeNull()
-  })
-  it('helpers', () => {
-    expect(seasonOf('Spring 2027')).toBe('spring')
+  it('surname keys agree across sources', () => {
+    expect(surnameKey('KAYNAR, ZELIHA DILSUN')).toBe('KAYNAR')
+    expect(surnameKey('Kaynar')).toBe('KAYNAR')
     expect(staffName('Erdmann, Michael')).toBe('Michael Erdmann')
   })
 })

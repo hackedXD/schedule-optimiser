@@ -28,14 +28,18 @@ npm run ingest -- path/to/export.html
 You can also load an export straight into the running app with **Load export**
 in the top bar (parsed in the browser, kept in memory only).
 
-The export has no instructor column, so the app cannot know who teaches which
-section. Instead it shows each course's FCE history from the ScottyLabs course
-API (the data behind cmucourses.com): one row per instructor with their mean
-overall-teaching and overall-course scores over their last three terms. Click
-**Use** to apply an instructor's teaching score as the course rating, or type a
-rating for the whole course, a lecture or a section. Unrated sections count as
-neutral. The dev server fetches FCE history per course and caches it in
-`public/data/fces.json`; for a production build prefetch with:
+The export has no instructor column, and no public source lists instructors for
+an upcoming semester, so instructors come only from an **Import SIO** paste
+(top bar): copy a course's section table from SIO and paste it. Once a course
+has imported instructors, its dialog lists them with FCE scores from the
+ScottyLabs course API (the data behind cmucourses.com): the instructor's mean
+overall-teaching and overall-course scores over their last three terms of that
+course, or, when they have never taught it, across every course they have
+taught (marked "all courses"). **Use** applies the score to the lectures and
+sections that instructor teaches. You can also type a rating for the whole
+course, a lecture or a section. Unrated sections count as neutral. The dev
+server fetches and caches FCEs in `public/data/`; for a production build
+prefetch with:
 
 ```bash
 npm run fces -- 21-241 18-213 15-150
@@ -71,19 +75,12 @@ near-ties fall through to the next criterion.
 | Walking | estimated metres per week between consecutive buildings, from and to your dorm when set | less |
 
 Walking is an estimate. SOC publishes no rooms for an upcoming semester, so
-each course is placed in the building it used the last time it ran (from
-ScottyLabs' past schedules, cached in `public/data/schedules.json`), or failing
-that its department's usual building (`src/campus.ts`). Override per course in
-its expanded row. Coordinates are hand-placed from the campus map.
+each course is placed in its department's usual building (`src/campus.ts`)
+unless you import its SIO rows or set a building in its expanded row.
+Coordinates are hand-placed from the campus map.
 
-The same past schedules give the instructor for each lecture and section the
-last time the course ran in the same season, shown faintly beside each row.
-Terms from Fall 2025 onward carry no instructors or rooms publicly, so this is
-a guess. For the real assignment, open the course in SIO, copy its section
-table (from the "Course:" heading down) and paste it into **Import SIO** in the
-top bar. Imported instructors and rooms replace the guess for that course,
-feed the walking estimate, and tag the matching instructors in the FCE list.
-Imports stay in your browser. Enrollment reservations from
+Imported SIO rows also carry the building and room, which replace the
+department estimate for walking. Imports stay in your browser. Enrollment reservations from
 the SOC detail page show as a `res` tag on the reserved sections.
 
 A pick-N group can be **Equal** (options interchangeable) or **Ranked** (drag

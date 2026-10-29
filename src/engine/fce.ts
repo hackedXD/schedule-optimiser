@@ -77,3 +77,36 @@ export function fceUrl(code: string): string {
   const id = code.length === 5 ? `${code.slice(0, 2)}-${code.slice(2)}` : code
   return `https://course.apis.scottylabs.org/fces?courseID=${id}`
 }
+
+export interface GeneralSummary {
+  instructor: string
+  /** Distinct course ids in the terms considered, e.g. ['15-112', '46-901']. */
+  courses: string[]
+  terms: string[]
+  teaching: number | null
+  course: number | null
+  respondents: number
+}
+
+/** One instructor's record across every course they have taught, over their last `recentTerms` offerings of any course. */
+export function summariseInstructor(records: FceRecord[], recentTerms = 3): GeneralSummary | null {
+  const usable = records.filter((r) => Array.isArray(r.rating) && r.rating.length > OVERALL_COURSE).sort((a, b) => termKey(b) - termKey(a))
+  if (!usable.length) return null
+  const recent = usable.slice(0, recentTerms)
+  return {
+    instructor: usable[0].instructor,
+    courses: [...new Set(usable.map((r) => r.courseID))].sort(),
+    terms: usable.map((r) => `${cap(r.semester)} ${r.year} · ${r.courseID}`),
+    teaching: mean(recent.map((r) => r.rating[OVERALL_TEACHING]).filter((x) => typeof x === 'number')),
+    course: mean(recent.map((r) => r.rating[OVERALL_COURSE]).filter((x) => typeof x === 'number')),
+    respondents: recent.reduce((n, r) => n + (r.numRespondents ?? 0), 0),
+  }
+}
+
+export function instructorFceUrl(name: string): string {
+  return `https://course.apis.scottylabs.org/fces?instructor=${encodeURIComponent(name)}`
+}
+export const INSTRUCTORS_URL = 'https://course.apis.scottylabs.org/instructors'
+
+/** What the app keeps per imported surname: every ScottyLabs instructor with that surname and their records. */
+export interface InstructorFces { surname: string; candidates: { name: string; records: FceRecord[] }[] }

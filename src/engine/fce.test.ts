@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { summariseFce, instructorName, fceUrl, type FceRecord } from './fce.ts'
+import { summariseFce, summariseInstructor, instructorName, fceUrl, instructorFceUrl, type FceRecord } from './fce.ts'
 
 const rec = (instructor: string, semester: string, year: string, teaching: number, course: number, hrs = 10): FceRecord => ({
   courseID: '15-150', instructor, andrewID: null, semester, year, hrsPerWeek: hrs, numRespondents: 50, possibleRespondents: 100,
@@ -18,6 +18,18 @@ describe('fce', () => {
     expect(s[0].terms[0]).toBe('Fall 2025')
     expect(s[0].terms).toHaveLength(3)
     expect(s[0].respondents).toBe(100)
+  })
+  it('summarises an instructor across courses', () => {
+    const g = summariseInstructor([
+      { ...rec('SANDS, LAUREN', 'fall', '2025', 4.0, 3.9), courseID: '46-901' },
+      { ...rec('SANDS, LAUREN', 'spring', '2025', 3.8, 3.7), courseID: '15-112' },
+      { ...rec('SANDS, LAUREN', 'fall', '2020', 2.0, 2.0), courseID: '15-112' },
+    ], 2)!
+    expect(g.courses).toEqual(['15-112', '46-901'])
+    expect(g.teaching).toBeCloseTo(3.9)
+    expect(g.terms[0]).toBe('Fall 2025 · 46-901')
+    expect(summariseInstructor([])).toBeNull()
+    expect(instructorFceUrl('SANDS, LAUREN')).toBe('https://course.apis.scottylabs.org/fces?instructor=SANDS%2C%20LAUREN')
   })
   it('formats names and urls', () => {
     expect(instructorName('KAYNAR, ZELIHA DILSUN')).toBe('Zeliha Dilsun Kaynar')

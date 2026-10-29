@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
-import type { Catalog, ChoiceGroup, Course, CourseDetail, FceRecord, Offering, Ratings, Staffing } from '../engine/index.ts'
-import { staffName, surnameKey } from '../engine/index.ts'
+import type { Catalog, ChoiceGroup, Course, CourseDetail, FceRecord, InstructorFces, Offering, Ratings, Staffing } from '../engine/index.ts'
+import { staffName, taughtBy } from '../engine/index.ts'
 import { FceHistory, type FceStatus } from './FceHistory.tsx'
 import { detailUrl, displayCode, formatMeeting, formatMeetingCompact, normaliseCode } from '../engine/index.ts'
 import { BUILDINGS, PLACES, defaultBuilding } from '../campus.ts'
@@ -25,6 +25,7 @@ interface Props {
   fcesFor: (code: string) => FceRecord[] | undefined
   fceStatusFor: (code: string) => FceStatus
   staffingFor: (code: string) => Staffing | null
+  instructorFces: Record<string, InstructorFces>
 }
 
 function parseCodes(text: string): { codes: string[]; bad: string[] } {
@@ -141,13 +142,13 @@ interface RowProps {
   color: { fg: string }; counts?: { lectures: number; sections: number; paired?: boolean }; onRemove: () => void
   detail: CourseDetail | undefined; detailStatus: DetailStatus; semester: string | null
   open: boolean; onToggle: () => void
-  fces: FceRecord[] | undefined; fceStatus: FceStatus; staffing?: Staffing | null
+  fces: FceRecord[] | undefined; fceStatus: FceStatus; staffing?: Staffing | null; instructorFces?: Record<string, InstructorFces>
   /** Rank badge for options in a ranked group. */
   rank?: number
   dragProps?: Record<string, unknown>
 }
 
-function CourseRow({ code, course, state, update, color, counts, onRemove, detail, detailStatus, semester, open, onToggle, fces, fceStatus, staffing, rank, dragProps }: RowProps) {
+function CourseRow({ code, course, state, update, color, counts, onRemove, detail, detailStatus, semester, open, onToggle, fces, fceStatus, staffing, instructorFces, rank, dragProps }: RowProps) {
   const noTimes = course && counts && counts.lectures + counts.sections === 0
   const pinnedHere = state.pinned.filter((id) => id.startsWith(`${code}:`)).length
   const excludedHere = state.excluded.filter((id) => id.startsWith(`${code}:`)).length
@@ -181,7 +182,7 @@ function CourseRow({ code, course, state, update, color, counts, onRemove, detai
       </div>
       {open && course && (
         <CourseBody code={code} course={course} state={state} update={update} detail={detail} detailStatus={detailStatus} semester={semester}
-          fces={fces} fceStatus={fceStatus} counts={counts} layout="row" staffing={staffing} />
+          fces={fces} fceStatus={fceStatus} counts={counts} layout="row" staffing={staffing} instructorFces={instructorFces} />
       )}
     </div>
   )
@@ -197,32 +198,35 @@ export interface CourseBodyProps {
   /** 'row' is the left-panel expansion (no FCE list); 'dialog' adds a short FCE list at the end. */
   layout: 'row' | 'dialog'
   staffing?: Staffing | null
+  instructorFces?: Record<string, InstructorFces>
 }
 
 /** Everything known about a course: description, ratings, building, lectures and sections, FCE history. */
-export function CourseBody({ code, course, state, update, detail, detailStatus, semester, fces, fceStatus, counts, taking, layout, staffing }: CourseBodyProps) {
+export function CourseBody({ code, course, state, update, detail, detailStatus, semester, fces, fceStatus, counts, taking, layout, staffing, instructorFces }: CourseBodyProps) {
   const lectures = course.offerings.filter((o) => o.kind === 'lecture')
   const sections = course.offerings.filter((o) => o.kind === 'section')
   const staffBuilding = staffing ? [...Object.values(staffing.lectures), ...Object.values(staffing.sections)].map((x) => x.building).find((b) => b && PLACES[b]) ?? null : null
   const building = state.buildings[code] ?? staffBuilding ?? defaultBuilding(code)
-  const buildingNote = state.buildings[code] ? '' : staffBuilding ? `(${staffing!.term} room)` : '(estimate)'
+  const buildingNote = state.buildings[code] ? '' : staffBuilding ? '(from SIO)' : '(department estimate)'
   const staffFor = (label: string, kind: 'lecture' | 'section') => {
     const x = staffing?.[kind === 'lecture' ? 'lectures' : 'sections'][label]
     return x && staffing ? { ...x, term: staffing.term } : undefined
   }
   const reservedCount = detail ? Object.keys(detail.reservations).length : 0
-  const taught: Record<string, string[]> = {}
-  if (staffing) for (const [label, st] of Object.entries(staffing.lectures)) for (const i of st.instructors) (taught[surnameKey(i)] ??= []).push(label)
-  const fce = <FceHistory records={fces} status={fceStatus} current={state.ratings[code]} compact taught={taught}
-    onApply={(v) => update((s) => ({ ...s, ratings: { ...s.ratings, [code]: v } }))} />
+  const taught = staffing ? taughtBy(staffing) : {}
+  // FCEs only once SIO staffing is imported: each instructor's score applies to the lectures and sections they teach.
+  const fce = staffing && Object.keys(taught).length > 0 ? (
+    <FceHistory records={fces} status={fceStatus} compact taught={taught} ratings={state.ratings} code={code} general={instructorFces ?? {}}
+      onApply={(v, surname) => update((s) => { const r = { ...s.ratings }; for (const label of taught[surname] ?? []) r[`${code}:${label}`] = v; return { ...s, ratings: r } })} />
+  ) : null
   return (
     <div className={`course-detail ${layout}`}>
       <About detail={detail} status={detailStatus} code={code} semester={semester} />
-      {(staffing || reservedCount > 0) && (
+      {(layout === 'dialog' || staffing || reservedCount > 0) && (
         <p className="help" style={{ margin: '0 0 6px', padding: '0 8px' }}>
-          {staffing && (staffing.term.startsWith('SIO')
-            ? <>Instructors and rooms are from your SIO import for this semester. <button className="more" onClick={() => update((s) => { const sio = { ...s.sio }; delete sio[code]; return { ...s, sio } })}>Remove import</button> </>
-            : <>Instructors and rooms shown are from {staffing.term}{staffing.sameSeason ? '' : ' (different season)'}, the newest term published; paste this semester's from SIO with Import SIO. </>)}
+          {staffing
+            ? <>Instructors and rooms are from your SIO import. <button className="more" onClick={() => update((s) => { const sio = { ...s.sio }; delete sio[code]; return { ...s, sio } })}>Remove import</button> </>
+            : <>No instructors yet: paste this course's section table from SIO (Import SIO, top bar) to see who teaches each section and their FCEs. </>}
           {reservedCount > 0 && <>{reservedCount} section{reservedCount === 1 ? ' has' : 's have'} enrollment reservations; hover <span className="tag warn res">res</span> for who they are for.</>}
         </p>
       )}
@@ -252,7 +256,7 @@ export function CourseBody({ code, course, state, update, detail, detailStatus, 
 }
 
 function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: number; props: Props; patch: (f: (g: ChoiceGroup) => ChoiceGroup) => void; remove: () => void }) {
-  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand, fcesFor, fceStatusFor, staffingFor } = props
+  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand, fcesFor, fceStatusFor, staffingFor, instructorFces } = props
   const drag = useRowDrag((from, to) => patch((x) => ({ ...x, options: move(x.options, from, to) })))
   const [adding, setAdding] = useState(g.options.length === 0)
   return (
@@ -277,7 +281,7 @@ function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: numb
         {g.options.map((code, i) => (
           <div key={code} className={`drag-row${g.ranked ? drag.cls(i) : ''}`}>
             <CourseRow code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]}
-              detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester} fces={fcesFor(code)} fceStatus={fceStatusFor(code)} staffing={staffingFor(code)}
+              detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester} fces={fcesFor(code)} fceStatus={fceStatusFor(code)} staffing={staffingFor(code)} instructorFces={instructorFces}
               open={expanded === code} onToggle={() => onExpand(expanded === code ? null : code)}
               rank={g.ranked ? i + 1 : undefined} dragProps={g.ranked ? drag.props(i) : undefined}
               onRemove={() => patch((x) => ({ ...x, options: x.options.filter((c) => c !== code), pick: Math.min(x.pick, Math.max(0, x.options.length - 1)) }))} />
@@ -296,7 +300,7 @@ function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: numb
 }
 
 export function CoursePanel(props: Props) {
-  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand, fcesFor, fceStatusFor, staffingFor } = props
+  const { catalog, state, update, colorOf, slotCounts, detailFor, detailStatusFor, semester, expanded, onExpand, fcesFor, fceStatusFor, staffingFor, instructorFces } = props
   const addRequired = (codes: string[]) => update((s) => ({ ...s, required: [...new Set([...s.required, ...codes])] }))
   const addGroup = () => update((s) => ({ ...s, groups: [...s.groups, { id: newId(), pick: 1, options: [] }] }))
   const patchGroup = (id: string, f: (g: ChoiceGroup) => ChoiceGroup) => update((s) => ({ ...s, groups: s.groups.map((g) => (g.id === id ? f(g) : g)) }))
@@ -318,7 +322,7 @@ export function CoursePanel(props: Props) {
       <div className="course-list">
         {state.required.map((code) => (
           <CourseRow key={code} code={code} course={catalog.courses[code]} state={state} update={update} color={colorOf(code)} counts={slotCounts[code]}
-            detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester} fces={fcesFor(code)} fceStatus={fceStatusFor(code)} staffing={staffingFor(code)}
+            detail={detailFor(code)} detailStatus={detailStatusFor(code)} semester={semester} fces={fcesFor(code)} fceStatus={fceStatusFor(code)} staffing={staffingFor(code)} instructorFces={instructorFces}
             open={expanded === code} onToggle={() => onExpand(expanded === code ? null : code)}
             onRemove={() => update((s) => ({ ...s, required: s.required.filter((c) => c !== code) }))} />
         ))}
