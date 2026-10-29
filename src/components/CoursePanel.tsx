@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Catalog, ChoiceGroup, Course, CourseDetail, FceRecord, Offering, Ratings, Staffing } from '../engine/index.ts'
-import { staffName } from '../engine/index.ts'
+import { staffName, surnameKey } from '../engine/index.ts'
 import { FceHistory, type FceStatus } from './FceHistory.tsx'
 import { detailUrl, displayCode, formatMeeting, formatMeetingCompact, normaliseCode } from '../engine/index.ts'
 import { BUILDINGS, PLACES, defaultBuilding } from '../campus.ts'
@@ -212,7 +212,7 @@ export function CourseBody({ code, course, state, update, detail, detailStatus, 
   }
   const reservedCount = detail ? Object.keys(detail.reservations).length : 0
   const taught: Record<string, string[]> = {}
-  if (staffing) for (const [label, st] of Object.entries(staffing.lectures)) for (const i of st.instructors) (taught[i.toUpperCase()] ??= []).push(label)
+  if (staffing) for (const [label, st] of Object.entries(staffing.lectures)) for (const i of st.instructors) (taught[surnameKey(i)] ??= []).push(label)
   const fce = <FceHistory records={fces} status={fceStatus} current={state.ratings[code]} compact taught={taught}
     onApply={(v) => update((s) => ({ ...s, ratings: { ...s.ratings, [code]: v } }))} />
   return (
@@ -220,7 +220,9 @@ export function CourseBody({ code, course, state, update, detail, detailStatus, 
       <About detail={detail} status={detailStatus} code={code} semester={semester} />
       {(staffing || reservedCount > 0) && (
         <p className="help" style={{ margin: '0 0 6px', padding: '0 8px' }}>
-          {staffing && <>Instructors and rooms shown are from {staffing.term}{staffing.sameSeason ? '' : ' (different season)'}, the newest term published. </>}
+          {staffing && (staffing.term.startsWith('SIO')
+            ? <>Instructors and rooms are from your SIO import for this semester. <button className="more" onClick={() => update((s) => { const sio = { ...s.sio }; delete sio[code]; return { ...s, sio } })}>Remove import</button> </>
+            : <>Instructors and rooms shown are from {staffing.term}{staffing.sameSeason ? '' : ' (different season)'}, the newest term published; paste this semester's from SIO with Import SIO. </>)}
           {reservedCount > 0 && <>{reservedCount} section{reservedCount === 1 ? ' has' : 's have'} enrollment reservations; hover <span className="tag warn res">res</span> for who they are for.</>}
         </p>
       )}

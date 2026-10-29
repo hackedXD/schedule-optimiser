@@ -59,3 +59,20 @@ export function schedulesUrl(code: string): string {
   const id = code.length === 5 ? `${code.slice(0, 2)}-${code.slice(2)}` : code
   return `https://course.apis.scottylabs.org/schedules?courseID=${id}`
 }
+
+/** Staffing built from rows pasted out of SIO for the planned semester. */
+export function staffingFromSio(rows: { label: string; instructors: string[]; building: string | null; room: string | null }[], term: string): Staffing {
+  const lectures: Record<string, Staffed> = {}
+  const sections: Record<string, Staffed> = {}
+  for (const r of rows) {
+    const st: Staffed = { instructors: r.instructors, building: r.building, room: r.room }
+    if (/^lec/i.test(r.label)) lectures[r.label] = st
+    else sections[r.label] = st
+  }
+  return { term, sameSeason: true, lectures, sections }
+}
+
+/** Upper-cased surname, the part every source agrees on: 'KAYNAR, ZELIHA DILSUN' / 'Kaynar, Zeliha' / 'Kaynar' -> 'KAYNAR'. */
+export function surnameKey(name: string): string {
+  return name.split(/[,;]/)[0].trim().toUpperCase()
+}

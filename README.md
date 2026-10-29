@@ -78,8 +78,12 @@ its expanded row. Coordinates are hand-placed from the campus map.
 
 The same past schedules give the instructor for each lecture and section the
 last time the course ran in the same season, shown faintly beside each row.
-Terms from Fall 2025 onward carry no instructors or rooms, so this is a guess
-at who will teach, not the Spring 2027 assignment. Enrollment reservations from
+Terms from Fall 2025 onward carry no instructors or rooms publicly, so this is
+a guess. For the real assignment, open the course in SIO, copy its section
+table (from the "Course:" heading down) and paste it into **Import SIO** in the
+top bar. Imported instructors and rooms replace the guess for that course,
+feed the walking estimate, and tag the matching instructors in the FCE list.
+Imports stay in your browser. Enrollment reservations from
 the SOC detail page show as a `res` tag on the reserved sections.
 
 A pick-N group can be **Equal** (options interchangeable) or **Ranked** (drag

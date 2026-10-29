@@ -9,9 +9,10 @@ interface Props {
   onLoadFile: (f: File) => void
   onResetSource: () => void
   custom: boolean
+  onImportSio: () => void
 }
 
-export function TopBar({ semester, runDate, source, count, onLoadFile, onResetSource, custom }: Props) {
+export function TopBar({ semester, runDate, source, count, onLoadFile, onResetSource, custom, onImportSio }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   return (
     <header className="topbar">
@@ -31,6 +32,9 @@ export function TopBar({ semester, runDate, source, count, onLoadFile, onResetSo
           <Icon name="reset" size={13} /> Bundled export
         </button>
       )}
+      <button className="btn sm" onClick={onImportSio} title="Paste a course's section table from SIO to get this semester's instructors and rooms">
+        <Icon name="copy" size={13} /> Import SIO
+      </button>
       <button className="btn sm" onClick={() => fileRef.current?.click()} title="Load a CMU Schedule of Classes HTML export">
         <Icon name="upload" size={13} /> Load export
       </button>

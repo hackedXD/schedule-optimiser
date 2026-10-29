@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ChoiceGroup, CriterionId, Ratings } from './engine/index.ts'
+import type { ChoiceGroup, CriterionId, Ratings, SioRow } from './engine/index.ts'
 import { DEFAULT_ORDER } from './engine/index.ts'
 
 export interface AppState {
@@ -15,6 +15,8 @@ export interface AppState {
   buildings: Record<string, string>
   /** Dorm code the day starts and ends at, or null. */
   dorm: string | null
+  /** Course code -> rows pasted from SIO (instructors, rooms) for the planned semester. */
+  sio: Record<string, { importedAt: string; rows: SioRow[] }>
 }
 
 export const EXAMPLE: Pick<AppState, 'required' | 'groups'> = {
@@ -33,6 +35,7 @@ export const INITIAL: AppState = {
   includeMini: true,
   buildings: {},
   dorm: null,
+  sio: {},
 }
 
 const KEY = 'schedule-optimiser.v1'

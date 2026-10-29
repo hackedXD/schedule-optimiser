@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FceRecord } from '../engine/index.ts'
-import { instructorName, summariseFce } from '../engine/index.ts'
+import { instructorName, summariseFce, surnameKey } from '../engine/index.ts'
 import { Icon } from './Icon.tsx'
 
 export type FceStatus = 'loading' | 'unavailable' | undefined
@@ -14,7 +14,7 @@ interface Props {
   onApply: (value: number, instructor: string) => void
   /** Shorter list in a scroll box (dialog). */
   compact?: boolean
-  /** Upper-cased instructor name -> labels they taught in the staffing term, e.g. 'Lec 1'. */
+  /** Upper-cased surname -> labels they teach, e.g. 'Lec 1'. */
   taught?: Record<string, string[]>
 }
 
@@ -46,7 +46,7 @@ export function FceHistory({ records, status, current, onApply, compact, taught 
           return (
             <div className={`fce-row${applied ? ' applied' : ''}`} key={s.instructor} title={`${s.terms.length} term${s.terms.length === 1 ? '' : 's'}: ${s.terms.slice(0, 6).join(', ')}${s.terms.length > 6 ? '…' : ''}`}>
               <span className="who">
-                <span className="name">{instructorName(s.instructor)}{taught?.[s.instructor.toUpperCase()]?.length ? <span className="tag accent" style={{ marginLeft: 6 }}>{taught[s.instructor.toUpperCase()].join(', ')}</span> : null}</span>
+                <span className="name">{instructorName(s.instructor)}{taught?.[surnameKey(s.instructor)]?.length ? <span className="tag accent" style={{ marginLeft: 6 }}>{taught[surnameKey(s.instructor)].join(', ')}</span> : null}</span>
                 <span className="when faint">{s.terms[0]}{s.terms.length > 1 ? ` · ${s.terms.length} terms` : ''}{s.hrsPerWeek !== null ? ` · ${s.hrsPerWeek.toFixed(0)} h/wk` : ''}</span>
               </span>
               <span className="score num" title="Overall teaching rate">{s.teaching?.toFixed(2) ?? '—'}</span>

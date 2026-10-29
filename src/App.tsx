@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Catalog, CourseDetail, FceRecord, Request, Staffing, TermSchedule } from './engine/index.ts'
-import { conflictingPairs, displayCode, latestStaffing, pairingsFrom, parseSocHtml, rank, seasonOf, semesterCode, solve } from './engine/index.ts'
+import { conflictingPairs, displayCode, latestStaffing, pairingsFrom, parseSocHtml, rank, seasonOf, semesterCode, solve, staffingFromSio } from './engine/index.ts'
 import { PLACES, defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
@@ -13,6 +13,7 @@ import { Register } from './components/Register.tsx'
 import { ResultsList } from './components/ResultsList.tsx'
 import { Icon } from './components/Icon.tsx'
 import { CourseDialog } from './components/CourseDialog.tsx'
+import { SioImportDialog } from './components/SioImportDialog.tsx'
 
 const PITTSBURGH = 'Pittsburgh, Pennsylvania'
 const EMPTY_CATALOG: Catalog = { semester: '', runDate: '', courses: {} }
@@ -25,6 +26,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [dialogCode, setDialogCode] = useState<string | null>(null)
+  const [sioOpen, setSioOpen] = useState(false)
   const [details, setDetails] = useState<Record<string, CourseDetail>>({})
   const [detailStatus, setDetailStatus] = useState<Record<string, 'loading' | 'missing' | 'unavailable'>>({})
   const [fces, setFces] = useState<Record<string, FceRecord[]>>({})
@@ -144,8 +146,9 @@ export default function App() {
   const staffings = useMemo(() => {
     const m: Record<string, Staffing | null> = {}
     for (const [code, terms] of Object.entries(schedules)) m[code] = latestStaffing(terms, season)
+    for (const [code, v] of Object.entries(state.sio)) m[code] = staffingFromSio(v.rows, `SIO · ${catalog.semester}`)
     return m
-  }, [schedules, season])
+  }, [schedules, season, state.sio, catalog.semester])
   const staffingFor = useCallback((code: string) => staffings[code] ?? null, [staffings])
 
   const pairings = useMemo(() => {
@@ -212,7 +215,7 @@ export default function App() {
   return (
     <div className="app">
       <TopBar semester={loading ? 'Loading…' : catalog.semester || 'No catalog'} runDate={catalog.runDate} source={custom ? custom.name : 'bundled export'}
-        count={result ? total : null} onLoadFile={onLoadFile} onResetSource={() => setCustom(null)} custom={!!custom} />
+        count={result ? total : null} onLoadFile={onLoadFile} onResetSource={() => setCustom(null)} custom={!!custom} onImportSio={() => setSioOpen(true)} />
 
       <aside className="panel left" aria-label="Inputs">
         {loadError && <div className="section"><div className="banner danger"><Icon name="alert" size={14} />{loadError}</div></div>}
@@ -263,6 +266,9 @@ export default function App() {
         semester={semester} color={colorOf(dialogCode ?? '')} state={state} update={update} counts={dialogCode ? result?.slotCounts[dialogCode] : undefined}
         fces={dialogCode ? fces[dialogCode] : undefined} fceStatus={dialogCode ? fceStatus[dialogCode] : undefined} staffing={dialogCode ? staffingFor(dialogCode) : null}
         onClose={() => setDialogCode(null)} />
+
+      <SioImportDialog open={sioOpen} catalog={catalog} codes={[...new Set(allCodes)]} onClose={() => setSioOpen(false)}
+        onImport={(code, rows) => update((s) => ({ ...s, sio: { ...s.sio, [code]: { importedAt: new Date().toISOString(), rows } } }))} />
 
       <aside className="panel right" aria-label="Ranked schedules">
         <ResultsList ranked={ranked} order={state.order} selectedId={selected?.id ?? null} onSelect={setSelectedId} colorOf={colorOf} truncated={result?.truncated ?? false} explored={result?.explored ?? 0} />
