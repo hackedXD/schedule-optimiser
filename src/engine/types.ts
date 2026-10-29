@@ -102,9 +102,15 @@ export interface Scores {
   rated: number
   /** Total slots in the schedule. */
   slots: number
+  /** Earliest first-class start across days with classes (the day that gets you up earliest). */
   start: number
+  /** Mean first-class start, used to break ties on `start`. */
+  startMean: number
   gap: number
+  /** Latest last-class end across days with classes. */
   end: number
+  /** Mean last-class end, used to break ties on `end`. */
+  endMean: number
   /** Estimated walking metres per week between consecutive buildings (and the dorm, when set). null when no building is known. */
   path: number | null
 }

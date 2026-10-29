@@ -92,11 +92,16 @@ describe('solver', () => {
 describe('ranker', () => {
   const req: Request = { ...base, required: ['21241', '18213'] }
   const res = solve(catalog, req, {})
-  it('later starts rank first when start leads', () => {
+  it('later earliest-starts rank first when start leads, mean breaking ties', () => {
     const r = rank(res.schedules, ['start', 'gap', 'end', 'fce'], ctx())
-    for (let i = 1; i < r.length; i++) expect(r[i - 1].scores.start).toBeGreaterThanOrEqual(r[i].scores.start - 15)
+    for (let i = 1; i < r.length; i++) {
+      const a = r[i - 1].scores, b = r[i].scores
+      expect(a.start).toBeGreaterThanOrEqual(b.start - 15)
+      if (Math.round(a.start / 15) === Math.round(b.start / 15)) expect(a.startMean).toBeGreaterThanOrEqual(b.startMean - 15)
+    }
+    for (const s of r) { expect(s.scores.start).toBeLessThanOrEqual(s.scores.startMean); expect(s.scores.end).toBeGreaterThanOrEqual(s.scores.endMean) }
   })
-  it('earlier ends rank first when end leads', () => {
+  it('earlier latest-ends rank first when end leads', () => {
     const r = rank(res.schedules, ['end', 'start', 'gap', 'fce'], ctx())
     for (let i = 1; i < r.length; i++) expect(r[i - 1].scores.end).toBeLessThanOrEqual(r[i].scores.end + 15)
   })

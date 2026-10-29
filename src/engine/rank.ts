@@ -4,9 +4,9 @@ import { walkingMetres } from '../campus.ts'
 
 export const CRITERIA: Criterion[] = [
   { id: 'fce', name: 'FCE rating', short: 'FCE', direction: 'Higher manual ratings first.', tolerance: 0.25, unit: 'rating' },
-  { id: 'start', name: 'Start time', short: 'START', direction: 'Days that begin later first.', tolerance: 15, unit: 'minutes' },
+  { id: 'start', name: 'Start time', short: 'START', direction: 'Latest earliest-start first, then the average.', tolerance: 15, unit: 'minutes' },
   { id: 'gap', name: 'Time between classes', short: 'GAP', direction: 'Longer shortest break first.', tolerance: 10, unit: 'minutes' },
-  { id: 'end', name: 'End time', short: 'END', direction: 'Days that finish earlier first.', tolerance: 15, unit: 'minutes' },
+  { id: 'end', name: 'End time', short: 'END', direction: 'Earliest latest-end first, then the average.', tolerance: 15, unit: 'minutes' },
   { id: 'path', name: 'Walking', short: 'WALK', direction: 'Less estimated walking per week first.', tolerance: 250, unit: 'metres' },
 ]
 export const DEFAULT_ORDER: CriterionId[] = ['fce', 'start', 'gap', 'end', 'path']
@@ -59,9 +59,11 @@ export function score(s: Schedule, ctx: RankContext, neutral: number | null): Sc
     fce: ratedCount ? mean(rated) : null,
     rated: ratedCount,
     slots: s.slots.length,
-    start: mean(starts),
+    start: starts.length ? Math.min(...starts) : 0,
+    startMean: mean(starts),
     gap: gaps.length ? Math.min(...gaps) : Infinity,
-    end: mean(ends),
+    end: ends.length ? Math.max(...ends) : 0,
+    endMean: mean(ends),
     path: pathKnown ? path : null,
   }
 }
@@ -77,14 +79,30 @@ export function orientedValue(id: CriterionId, sc: Scores): number {
   }
 }
 
+/** Secondary measure for a criterion, compared only when the primary ties within tolerance. */
+function secondaryValue(id: CriterionId, sc: Scores): number | null {
+  switch (id) {
+    case 'start': return sc.startMean
+    case 'end': return -sc.endMean
+    default: return null
+  }
+}
+
 function band(id: CriterionId, sc: Scores): number {
   const c = CRITERIA.find((x) => x.id === id)!
   return Math.round(orientedValue(id, sc) / c.tolerance)
 }
 
+function bandSecondary(id: CriterionId, sc: Scores): number | null {
+  const v = secondaryValue(id, sc)
+  if (v === null) return null
+  return Math.round(v / CRITERIA.find((x) => x.id === id)!.tolerance)
+}
+
 /**
  * Rank by strict priority: compare criteria in `order`, each quantised to its tolerance band
- * so near-ties fall through to the next criterion. Final tie-break on raw values, then id.
+ * so near-ties fall through to the next criterion. Start and end judge the worst day first (earliest
+ * start, latest end) and their weekly mean second. Final tie-break on raw values, then id.
  */
 export function rank(schedules: Schedule[], order: CriterionId[], ctx: RankContext): RankedSchedule[] {
   const given = Object.values(ctx.ratings)
@@ -94,10 +112,14 @@ export function rank(schedules: Schedule[], order: CriterionId[], ctx: RankConte
     for (const id of order) {
       const d = band(id, b.scores) - band(id, a.scores)
       if (d !== 0) return d
+      const sa = bandSecondary(id, a.scores), sb = bandSecondary(id, b.scores)
+      if (sa !== null && sb !== null && sb - sa !== 0) return sb - sa
     }
     for (const id of order) {
       const d = orientedValue(id, b.scores) - orientedValue(id, a.scores)
       if (d !== 0) return d
+      const sa = secondaryValue(id, a.scores), sb = secondaryValue(id, b.scores)
+      if (sa !== null && sb !== null && sb - sa !== 0) return sb - sa
     }
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   })

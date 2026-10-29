@@ -5,9 +5,9 @@ import { Icon } from './Icon.tsx'
 export function formatScore(id: CriterionId, s: Scores): { text: string; none: boolean; sub?: string } {
   switch (id) {
     case 'fce': return s.fce === null ? { text: '—', none: true } : { text: s.fce.toFixed(2), none: false, sub: `${s.rated}/${s.slots}` }
-    case 'start': return { text: formatClock(Math.round(s.start)), none: false }
+    case 'start': return { text: formatClock(Math.round(s.start)), none: false, sub: `avg ${formatClock(Math.round(s.startMean))}` }
     case 'gap': return s.gap === Infinity ? { text: 'none', none: true } : { text: formatDuration(s.gap), none: false }
-    case 'end': return { text: formatClock(Math.round(s.end)), none: false }
+    case 'end': return { text: formatClock(Math.round(s.end)), none: false, sub: `avg ${formatClock(Math.round(s.endMean))}` }
     case 'path': return s.path === null ? { text: '—', none: true } : { text: `${(s.path / 1000).toFixed(1)} km`, none: false }
   }
 }
@@ -26,9 +26,9 @@ export function formatScoreCompact(id: CriterionId, s: Scores): { text: string; 
 
 export const SCORE_TITLES: Record<CriterionId, string> = {
   fce: 'Mean manual FCE rating over sections; unrated sections count as neutral',
-  start: 'Mean first-class start across days with classes',
+  start: 'Earliest first-class start of the week (the day that gets you up earliest); the average start breaks ties',
   gap: 'Shortest break between consecutive classes in the week',
-  end: 'Mean last-class end across days with classes',
+  end: 'Latest last-class end of the week; the average end breaks ties',
   path: 'Estimated walking per week between buildings (department estimate unless you set a building), from and to your dorm when set',
 }
 

@@ -100,9 +100,9 @@ near-ties fall through to the next criterion.
 | Criterion | Measure | Better |
 |---|---|---|
 | FCE rating | mean manual rating over the schedule's sections | higher |
-| Start time | mean first-class start over days with classes | later |
+| Start time | earliest first-class start of the week; the weekly mean breaks ties | later |
 | Time between classes | shortest break between consecutive classes in the week | longer |
-| End time | mean last-class end over days with classes | earlier |
+| End time | latest last-class end of the week; the weekly mean breaks ties | earlier |
 | Walking | estimated metres per week between consecutive buildings, from and to your dorm when set | less |
 
 Walking is an estimate. SOC publishes no rooms for an upcoming semester, so
