@@ -122,12 +122,12 @@ export function About({ detail, status, code, semester }: { detail: CourseDetail
       {detail.description && <p className={`desc${more || !long ? '' : ' clamp'}`}>{detail.description}</p>}
       {long && <button className="more" aria-expanded={more} onClick={() => setMore(!more)}>{more ? 'Show less' : 'Show more'}</button>}
       <dl>
-        {detail.prerequisites && <><dt>Prereq</dt><dd>{detail.prerequisites}</dd></>}
-        {detail.corequisites && <><dt>Coreq</dt><dd>{detail.corequisites}</dd></>}
-        {detail.crossListed && <><dt>Cross-listed</dt><dd>{detail.crossListed}</dd></>}
-        {detail.notes && <><dt>Notes</dt><dd>{detail.notes}</dd></>}
-        {detail.specialPermission && <><dt>Permission</dt><dd>Special permission required</dd></>}
-        <dt>Links</dt>
+        {detail.prerequisites && <><dt>prereq</dt><dd>{detail.prerequisites}</dd></>}
+        {detail.corequisites && <><dt>coreq</dt><dd>{detail.corequisites}</dd></>}
+        {detail.crossListed && <><dt>cross-listed</dt><dd>{detail.crossListed}</dd></>}
+        {detail.notes && <><dt>notes</dt><dd>{detail.notes}</dd></>}
+        {detail.specialPermission && <><dt>permission</dt><dd>Special permission required</dd></>}
+        <dt>links</dt>
         <dd>
           {semester && <a href={detailUrl(code, semester)} target="_blank" rel="noreferrer">SOC course details</a>}
           {detail.urls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer">{u.replace(/^https?:\/\//, '')}</a>)}
@@ -257,10 +257,10 @@ export function CourseBody({ code, course, state, update, detail, detailStatus, 
         </select>
       </label>
       {lectures.length > 0 && (
-        <div className="offering-group"><h4>Lectures</h4>{lectures.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} taking={taking?.has(o.id)} reserved={detail?.reservations[o.label]} staff={staffFor(o.label, 'lecture')} />)}</div>
+        <div className="offering-group"><h4>lectures</h4>{lectures.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} taking={taking?.has(o.id)} reserved={detail?.reservations[o.label]} staff={staffFor(o.label, 'lecture')} />)}</div>
       )}
       {sections.length > 0 && (
-        <div className="offering-group"><h4>Sections</h4>{sections.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} taking={taking?.has(o.id)} reserved={detail?.reservations[o.label]} staff={staffFor(o.label, 'section')} />)}</div>
+        <div className="offering-group"><h4>sections</h4>{sections.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} taking={taking?.has(o.id)} reserved={detail?.reservations[o.label]} staff={staffFor(o.label, 'section')} />)}</div>
       )}
       {layout === 'dialog' && fce}
     </div>
@@ -328,7 +328,7 @@ export function CoursePanel(props: Props) {
   return (
     <section className="section">
       <div className="section-head">
-        <h2>Courses</h2>
+        <h2>courses</h2>
         <span style={{ display: 'flex', gap: 2 }}>
           {empty ? (
             <button className="btn ghost sm" onClick={() => update((s) => ({ ...s, ...EXAMPLE, groups: EXAMPLE.groups.map((g) => ({ ...g, id: newId() })) }))}>Load example</button>

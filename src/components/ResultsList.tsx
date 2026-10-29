@@ -63,13 +63,13 @@ export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, trun
   return (
     <>
       <div className="results-head">
-        <h2>Schedules</h2>
+        <h2>schedules</h2>
         <span className="count num">{ranked.length.toLocaleString()}</span>
       </div>
       <div className="results-cols" aria-hidden="true" style={{ gridTemplateColumns: `34px repeat(${order.length + (openLabel ? 1 : 0)}, minmax(0, 1fr))` }}>
         <span />
-        {openLabel && <span className="c lead">OPEN</span>}
-        {order.map((id, i) => <span className={`c${i === 0 && !openLabel ? ' lead' : ''}`} key={id}>{CRITERIA.find((c) => c.id === id)!.short}</span>)}
+        {openLabel && <span className="c lead">open</span>}
+        {order.map((id, i) => <span className={`c${i === 0 && !openLabel ? ' lead' : ''}`} key={id}>{CRITERIA.find((c) => c.id === id)!.short.toLowerCase()}</span>)}
       </div>
       <div className="results" ref={listRef} role="listbox" aria-label="Ranked schedules">
         {visible.map((s) => (

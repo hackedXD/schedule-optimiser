@@ -47,7 +47,7 @@ export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, on
     <>
       <section className="section">
         <div className="section-head">
-          <h2>Availability</h2>
+          <h2>availability</h2>
           <span className="meta">{hardCount ? `${hardCount} open tier${hardCount === 1 ? '' : 's'}` : 'nothing marked hard or flexible'}</span>
         </div>
         <button className="toggle" style={{ width: '100%' }} role="switch" aria-checked={availabilityMode} onClick={() => onAvailabilityMode(!availabilityMode)}
@@ -57,7 +57,7 @@ export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, on
       </section>
       <section className="section">
         <div className="section-head">
-          <h2>Ranking</h2>
+          <h2>ranking</h2>
           <span className="meta">drag rows to reorder</span>
         </div>
         <div className="criteria" role="list" aria-label="Ranking criteria in priority order">
@@ -84,7 +84,7 @@ export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, on
         </p>
       </section>
       <section className="section">
-        <div className="section-head"><h2>Walking</h2><span className="meta">estimate</span></div>
+        <div className="section-head"><h2>walking</h2><span className="meta">estimate</span></div>
         <label className="row-field">
           <span>Start and end the day at</span>
           <select className="select" value={dorm ?? ''} onChange={(e) => onDorm(e.target.value || null)} aria-label="Dorm">
@@ -97,7 +97,7 @@ export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, on
         </p>
       </section>
       <section className="section">
-        <div className="section-head"><h2>Filters</h2></div>
+        <div className="section-head"><h2>filters</h2></div>
         <button className="toggle" style={{ width: '100%' }} role="switch" aria-checked={pittsburghOnly} onClick={() => onToggle('pittsburghOnly')}>
           <span>Pittsburgh campus only</span><span className="switch" aria-checked={pittsburghOnly} />
         </button>

@@ -23,7 +23,7 @@ export function FceHistory({ records, status, taught, ratings, code, onApply, co
   if (!records) {
     return (
       <div className={`fce-history${compact ? ' compact' : ''}`}>
-        <h4>FCE history</h4>
+        <h4>fce history</h4>
         {status === 'loading' ? <span className="skeleton" style={{ display: 'block', height: 26 }} />
           : status === 'unavailable' ? <p className="faint">FCE history unavailable: run <code>npm run fces</code> or use the dev server.</p>
           : null}
@@ -60,7 +60,7 @@ export function FceHistory({ records, status, taught, ratings, code, onApply, co
   }
   return (
     <div className={`fce-history${compact ? ' compact' : ''}`}>
-      <h4>FCEs for this semester's instructors <span className="faint">via ScottyLabs · overall teaching, last 3 terms</span></h4>
+      <h4>fces for this semester's instructors <span className="faint">via ScottyLabs · overall teaching, last 3 terms</span></h4>
       <div className="fce-rows">
         {rows.flatMap(({ surname, labels, here, elsewhere, pending }) => {
           if (here) {

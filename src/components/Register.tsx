@@ -19,7 +19,7 @@ export function registerLines(s: RankedSchedule): { course: string; parts: { kin
 export function Register({ schedule, colorOf, plan }: Props) {
   const [copied, setCopied] = useState(false)
   useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(false), 1600); return () => clearTimeout(t) }, [copied])
-  if (!schedule) return <div className="register"><span className="label">Register</span><span className="faint">Pick a schedule to see its codes</span></div>
+  if (!schedule) return <div className="register"><span className="label">register</span><span className="faint">Pick a schedule to see its codes</span></div>
   const openCourses = new Set(plan?.open.flatMap((o) => o.courses) ?? [])
   const lines = registerLines(schedule).filter((l) => !openCourses.has(l.course))
   const optionText = (opt: Plan['open'][number]['options'][number], withCourse = false) => (withCourse ? `${displayCode(opt.course)} ` : '') + opt.offerings.map((o) => (o.kind === 'lecture' ? compactLabel(o.label) : o.label)).join('+')
@@ -32,7 +32,7 @@ export function Register({ schedule, colorOf, plan }: Props) {
   const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true) } catch { /* clipboard unavailable */ } }
   return (
     <div className="register">
-      <span className="label">Register</span>
+      <span className="label">register</span>
       {lines.map((l) => (
         <span className="reg-item" key={l.course} style={{ '--c-fg': colorOf(l.course).fg } as React.CSSProperties}>
           <span className="code">{displayCode(l.course)}</span>

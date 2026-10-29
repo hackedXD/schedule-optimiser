@@ -53,8 +53,8 @@ export function RankHead({ schedule, total, order, onStep, plan }: Props) {
       <div className="readouts">
         {plan && plan.open.map((o) => (
           <div className="readout lead open" key={o.key} title={`${o.label}${o.courses.length > 1 ? ` (${o.courses.map(displayCode).join(', ')})` : ''}: ${o.guaranteed.toFixed(1)} of ${o.total} lecture+section options guaranteed open${o.best !== o.guaranteed ? `, up to ${o.best.toFixed(1)} depending on harder courses` : ''}`}>
-            <span className="k"><span className="pri num">∗</span>OPEN {o.label}</span>
-            <span className="v num">{Math.round(o.guaranteed)}<span className="sub">of {o.total}</span></span>
+            <span className="k"><span className="pri num">∗</span>open {o.label}</span>
+            <span className="v num">{Math.round(o.guaranteed)}/{o.total}</span>
           </div>
         ))}
         {order.map((id, i) => {
@@ -62,7 +62,7 @@ export function RankHead({ schedule, total, order, onStep, plan }: Props) {
           const v = schedule ? formatScore(id, schedule.scores) : { text: '—', none: true }
           return (
             <div className={`readout${i === 0 && !plan ? ' lead' : ''}`} key={id} title={SCORE_TITLES[id]}>
-              <span className="k"><span className="pri num">{i + 1}</span>{c.short}</span>
+              <span className="k"><span className="pri num">{i + 1}</span>{c.short.toLowerCase()}</span>
               <span className={`v num${v.none ? ' none' : ''}`}>{v.text}{v.sub && <span className="sub">{v.sub}</span>}</span>
             </div>
           )
