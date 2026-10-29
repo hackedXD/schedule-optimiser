@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Plan, RankedSchedule } from '../engine/index.ts'
-import { displayCode } from '../engine/index.ts'
+import { compactLabel, displayCode, displayLabel } from '../engine/index.ts'
 import { Icon } from './Icon.tsx'
 
 interface Props {
@@ -22,11 +22,11 @@ export function Register({ schedule, colorOf, plan }: Props) {
   if (!schedule) return <div className="register"><span className="label">Register</span><span className="faint">Pick a schedule to see its codes</span></div>
   const openCourses = new Set(plan?.open.flatMap((o) => o.courses) ?? [])
   const lines = registerLines(schedule).filter((l) => !openCourses.has(l.course))
-  const optionText = (opt: Plan['open'][number]['options'][number], withCourse = false) => (withCourse ? `${displayCode(opt.course)} ` : '') + opt.offerings.map((o) => (o.kind === 'lecture' ? o.label.replace('Lec ', 'L').replace('Lec', 'L') : o.label)).join('+')
+  const optionText = (opt: Plan['open'][number]['options'][number], withCourse = false) => (withCourse ? `${displayCode(opt.course)} ` : '') + opt.offerings.map((o) => (o.kind === 'lecture' ? compactLabel(o.label) : o.label)).join('+')
   const seatTag = (opt: Plan['open'][number]['options'][number]) => opt.seat?.state === 'available' ? 'open' : opt.seat?.state === 'waitlist' ? `wait${opt.seat.waitlist != null ? ' ' + opt.seat.waitlist : ''}` : opt.seat?.state === 'closed' ? 'closed' : ''
   const openLines = (plan?.open ?? []).map((oc) => ({ key: oc.key, label: oc.label, group: oc.courses.length > 1, course: oc.courses[0], options: [...oc.options].sort((a, b) => b.weight - a.weight) }))
   const text = [
-    ...lines.map((l) => `${displayCode(l.course)}  ${l.parts.map((p) => (p.kind === 'lecture' ? p.labels[0] : `Sec ${p.labels.join('/')}`)).join('  ')}`),
+    ...lines.map((l) => `${displayCode(l.course)}  ${l.parts.map((p) => (p.kind === 'lecture' ? displayLabel(p.labels[0]) : `Sec ${p.labels.join('/')}`)).join('  ')}`),
     ...openLines.map((l) => `${l.group ? l.label : displayCode(l.course)}  any of: ${l.options.map((o) => optionText(o, l.group) + (seatTag(o) ? ` (${seatTag(o)})` : '')).join(', ')}`),
   ].join('\n')
   const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true) } catch { /* clipboard unavailable */ } }
@@ -39,7 +39,7 @@ export function Register({ schedule, colorOf, plan }: Props) {
           {l.parts.map((p, i) => (
             <span key={i}>
               <span className="sep">·</span>{' '}
-              {p.kind === 'lecture' ? p.labels[0] : <>Sec {p.labels[0]}{p.labels.length > 1 && <span className="alt" title="Interchangeable sections: identical times"> /{p.labels.slice(1).join('/')}</span>}</>}
+              {p.kind === 'lecture' ? displayLabel(p.labels[0]) : <>Sec {p.labels[0]}{p.labels.length > 1 && <span className="alt" title="Interchangeable sections: identical times"> /{p.labels.slice(1).join('/')}</span>}</>}
             </span>
           ))}
         </span>

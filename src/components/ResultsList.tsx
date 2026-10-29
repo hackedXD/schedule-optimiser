@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CriterionId, RankedSchedule } from '../engine/index.ts'
-import { CRITERIA, displayCode } from '../engine/index.ts'
+import { CRITERIA, compactLabel, displayCode } from '../engine/index.ts'
 import { formatScore, formatScoreCompact } from './RankHead.tsx'
 
 interface Props {
@@ -82,7 +82,7 @@ export function ResultsList({ ranked, order, selectedId, onSelect, colorOf, trun
             <span className="codes">
               {s.courses.map((c) => {
                 const parts = s.slots.filter((sl) => sl.course === c).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'lecture' ? -1 : 1))
-                const codes = parts.map((p) => (p.kind === 'lecture' ? p.offerings[0].label.replace('Lec', 'L').replace(' ', '') : p.offerings[0].label)).join('·')
+                const codes = parts.map((p) => (p.kind === 'lecture' ? compactLabel(p.offerings[0].label) : p.offerings[0].label)).join('·')
                 return <span key={c} title={`${displayCode(c)} ${codes}`}><i className="sw" style={{ background: colorOf(c).fg }} />{codes}</span>
               })}
             </span>

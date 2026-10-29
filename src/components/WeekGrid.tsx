@@ -1,5 +1,5 @@
 import type { Catalog, Day, Plan, RankedSchedule } from '../engine/index.ts'
-import { DAY_SHORT, WEEKDAYS, dayBlocks, displayCode, formatClock } from '../engine/index.ts'
+import { DAY_SHORT, WEEKDAYS, dayBlocks, displayCode, displayLabel, formatClock } from '../engine/index.ts'
 
 interface Props {
   schedule: RankedSchedule | null
@@ -18,14 +18,17 @@ export function WeekGrid({ schedule, catalog, colorOf, onBlockClick, plan }: Pro
   if (plan) {
     const preferredIds = new Set(schedule?.slots.flatMap((s) => s.offerings.map((o) => o.id)) ?? [])
     for (const oc of plan.open) for (const opt of oc.options) {
-      if (opt.offerings.every((o) => preferredIds.has(o.id))) continue
-      for (const sl of opt.slots) for (const m of sl.meetings) for (const d of m.days) {
+      for (const sl of opt.slots) {
+        // A slot already in the preferred pick is drawn solid; no ghost underneath it.
+        if (sl.offerings.some((o) => preferredIds.has(o.id))) continue
+        for (const m of sl.meetings) for (const d of m.days) {
         const key = `${opt.course}|${d}|${m.start}|${m.end}`
-        const label = sl.kind === 'section' ? sl.offerings.map((o) => o.label).join('/') : sl.offerings[0].label
+        const label = sl.kind === 'section' ? sl.offerings.map((o) => o.label).join('/') : displayLabel(sl.offerings[0].label)
         const g = ghosts.get(key) ?? { day: d, start: m.start, end: m.end, course: opt.course, labels: [], weight: 0 }
         if (!g.labels.includes(label)) g.labels.push(label)
         g.weight = Math.max(g.weight, opt.weight)
         ghosts.set(key, g)
+        }
       }
     }
   }
@@ -67,10 +70,10 @@ export function WeekGrid({ schedule, catalog, colorOf, onBlockClick, plan }: Pro
             const course = catalog.courses[o.course]
             return (
               <button key={`${o.id}-${i}`} type="button" className={`block${short ? ' short' : ''}${b.slot.mini ? ' mini' : ''}`} data-mini={b.slot.mini ? `m${b.slot.mini}` : undefined}
-                onClick={() => onBlockClick?.(o.course)} aria-label={`${displayCode(o.course)} ${o.label}: show course details`}
+                onClick={() => onBlockClick?.(o.course)} aria-label={`${displayCode(o.course)} ${displayLabel(o.label)}: show course details`}
                 style={{ top: `calc(${pct(b.start)}% + 1px)`, height: `calc(${pct(b.end) - pct(b.start)}% - 2px)`, '--c-fg': c.fg, '--c-bg': c.bg, '--c-border': c.border } as React.CSSProperties}
-                title={`${displayCode(o.course)} ${o.label} · ${formatClock(b.start)}–${formatClock(b.end)}${course ? ` · ${course.title}` : ''} — click for details`}>
-                <div className="code"><span>{displayCode(o.course)}</span><span className="lbl">{b.slot.kind === 'section' ? `Sec ${b.slot.offerings.map((x) => x.label).join('/')}` : o.label}</span></div>
+                title={`${displayCode(o.course)} ${displayLabel(o.label)} · ${formatClock(b.start)}–${formatClock(b.end)}${course ? ` · ${course.title}` : ''} — click for details`}>
+                <div className="code"><span>{displayCode(o.course)}</span><span className="lbl">{b.slot.kind === 'section' ? `Sec ${b.slot.offerings.map((x) => x.label).join('/')}` : displayLabel(o.label)}</span></div>
                 <div className="time">{formatClock(b.start)}–{formatClock(b.end)}</div>
                 {course && long && <div className="title">{course.title}</div>}
               </button>

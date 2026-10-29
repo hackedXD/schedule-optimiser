@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Catalog, CourseDetail, FceRecord, InstructorFces, Slot, Staffing } from '../engine/index.ts'
 import type { FceStatus } from './FceHistory.tsx'
-import { detailUrl, displayCode } from '../engine/index.ts'
+import { detailUrl, displayCode, displayLabel } from '../engine/index.ts'
 import { CourseBody, type DetailStatus } from './CoursePanel.tsx'
 import type { AppState } from '../state.ts'
 import { Icon } from './Icon.tsx'
@@ -47,7 +47,7 @@ export function CourseDialog({ code, catalog, slots, detail, status, semester, c
             {course && (
               <div className="dialog-meta-line">
                 <span>{course.units} units</span><span className="dot" /><span>{course.department}</span>
-                {slots.length > 0 && <><span className="dot" /><span>Taking {slots.map((sl) => `${sl.kind === 'lecture' ? '' : 'Sec '}${sl.offerings.map((o) => o.label).join('/')}`).join(' + ')}</span></>}
+                {slots.length > 0 && <><span className="dot" /><span>Taking {slots.map((sl) => (sl.kind === 'lecture' ? displayLabel(sl.offerings[0].label) : `Sec ${sl.offerings.map((o) => o.label).join('/')}`)).join(' + ')}</span></>}
               </div>
             )}
             {course && (

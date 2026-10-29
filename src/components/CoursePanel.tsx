@@ -2,7 +2,7 @@ import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Catalog, ChoiceGroup, Course, CourseDetail, FceRecord, InstructorFces, Offering, Ratings, Staffing } from '../engine/index.ts'
 import { staffName, taughtBy } from '../engine/index.ts'
 import { FceHistory, type FceStatus } from './FceHistory.tsx'
-import { detailUrl, displayCode, formatMeeting, formatMeetingCompact, normaliseCode } from '../engine/index.ts'
+import { detailUrl, displayCode, displayLabel, formatMeeting, formatMeetingCompact, normaliseCode } from '../engine/index.ts'
 import { BUILDINGS, PLACES, defaultBuilding } from '../campus.ts'
 import { Icon } from './Icon.tsx'
 import { move, useRowDrag } from './CriteriaPanel.tsx'
@@ -80,7 +80,7 @@ function OfferingRow({ o, state, update, taking, reserved, staff }: { o: Offerin
   })
   return (
     <div className={`offering${excluded ? ' excluded' : ''}${taking ? ' taking' : ''}`} title={taking ? 'In the selected schedule' : undefined}>
-      <span className="label">{o.label}{o.mini ? <span className="faint" title={o.mini === 3 ? 'First mini' : 'Second mini'}> m{o.mini}</span> : null}</span>
+      <span className="label">{displayLabel(o.label)}{o.mini ? <span className="faint" title={o.mini === 3 ? 'First mini' : 'Second mini'}> m{o.mini}</span> : null}</span>
       <span className={`when${o.tba ? ' tba' : ''}`} title={o.meetings.map(formatMeeting).join(' · ')}>
         {o.tba || !o.meetings.length ? 'TBA' : o.meetings.map(formatMeetingCompact).join(' · ')}
         {staff && staff.instructors.length > 0 && (

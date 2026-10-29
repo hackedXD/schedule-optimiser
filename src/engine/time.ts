@@ -74,3 +74,14 @@ export function normaliseCode(s: string): string | null {
 export function displayCode(code: string): string {
   return code.length === 5 ? `${code.slice(0, 2)}-${code.slice(2)}` : code
 }
+
+/** Lecture/section label for display: a lone "Lec" reads as "Lec 1". */
+export function displayLabel(label: string): string {
+  return /^lec$/i.test(label.trim()) ? 'Lec 1' : label
+}
+
+/** Compact form for dense lists: 'Lec 2' -> 'L2', 'Lec' -> 'L1', sections unchanged. */
+export function compactLabel(label: string): string {
+  const m = /^lec\s*(\d*)$/i.exec(label.trim())
+  return m ? `L${m[1] || '1'}` : label
+}
