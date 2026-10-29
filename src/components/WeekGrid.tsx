@@ -20,9 +20,9 @@ export function WeekGrid({ schedule, catalog, colorOf, onBlockClick, plan }: Pro
     for (const oc of plan.open) for (const opt of oc.options) {
       if (opt.offerings.every((o) => preferredIds.has(o.id))) continue
       for (const sl of opt.slots) for (const m of sl.meetings) for (const d of m.days) {
-        const key = `${oc.course}|${d}|${m.start}|${m.end}`
+        const key = `${opt.course}|${d}|${m.start}|${m.end}`
         const label = sl.kind === 'section' ? sl.offerings.map((o) => o.label).join('/') : sl.offerings[0].label
-        const g = ghosts.get(key) ?? { day: d, start: m.start, end: m.end, course: oc.course, labels: [], weight: 0 }
+        const g = ghosts.get(key) ?? { day: d, start: m.start, end: m.end, course: opt.course, labels: [], weight: 0 }
         if (!g.labels.includes(label)) g.labels.push(label)
         g.weight = Math.max(g.weight, opt.weight)
         ghosts.set(key, g)

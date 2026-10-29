@@ -153,7 +153,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 .select:hover { border-color: var(--line-3); }
 .select:focus { border-color: var(--accent); }
-.row-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; color: var(--text-2); }
+.row-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; color: var(--text-2); flex-wrap: wrap; }
 .row-field > span { flex: none; }
 .row-field .select { flex: 1; }
 .rank-badge { width: 14px; height: 14px; border-radius: var(--r-1); background: var(--bg-3); color: var(--text-2); display: grid; place-items: center; font-size: 9.5px; font-weight: 600; margin-left: -3px; }
@@ -253,8 +253,10 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   height: 32px; padding: 0 4px 0 24px; border-radius: var(--r-2); color: var(--text-2);
 }
 .group-row .bracket { top: 10px; }
-.group-row .pick { display: flex; align-items: center; gap: 6px; }
-.group-row .ops { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.group-row .pick { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.group-row .pick .num-input { width: 34px; padding: 0 2px; }
+.group-row .ops { margin-left: auto; display: flex; align-items: center; gap: 0; }
+.group-row .ops .btn.sm { padding: 0 6px; }
 .group-options { position: relative; margin-left: 12px; padding-left: 8px; padding-bottom: 14px; }
 .group-options::before { content: ''; position: absolute; left: 0; top: 2px; bottom: 12px; width: 1px; background: var(--line-2); }
 .group-options .course-row { padding-left: 6px; }
@@ -520,7 +522,10 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------- Availability mode ---------- */
 .segmented { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--r-2); overflow: hidden; }
-.segmented button { height: 22px; padding: 0 8px; font-size: 11px; color: var(--text-2); border-right: 1px solid var(--line-2); transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
+.segmented { flex: none; }
+.row-field.seat { flex-wrap: nowrap; }
+.row-field.seat > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.segmented button { height: 22px; padding: 0 7px; font-size: 10.5px; white-space: nowrap; color: var(--text-2); border-right: 1px solid var(--line-2); transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease); }
 .segmented button:last-child { border-right: 0; }
 .segmented button:hover { background: var(--bg-3); color: var(--text-1); }
 .segmented button.on { background: var(--accent-soft); color: var(--accent-strong); }
@@ -537,3 +542,6 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .reg-item .opt.available { background: var(--ok-soft); }
 .reg-item .opt.waitlist { background: var(--warn-soft); }
 .reg-item .opt.closed { background: var(--danger-soft); color: var(--text-2); }
+
+.group-row .flex-btn { margin-right: 2px; }
+.reg-item.open .opt .oc { color: var(--c-fg); font-weight: 600; margin-right: 3px; }

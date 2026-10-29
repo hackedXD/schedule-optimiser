@@ -237,8 +237,8 @@ export function CourseBody({ code, course, state, update, detail, detailStatus, 
         <RatingInput value={state.ratings[code]} title={`FCE rating for all of ${displayCode(code)}`}
           onChange={(v) => update((s) => { const r: Ratings = { ...s.ratings }; if (v === undefined) delete r[code]; else r[code] = v; return { ...s, ratings: r } })} />
       </div>
-      <div className="row-field" style={{ padding: '0 0 0 8px' }}>
-        <span>Seat difficulty</span>
+      <div className="row-field seat" style={{ padding: '0 0 0 8px' }}>
+        <span title="How hard it is to get a seat; hard courses are kept open in availability mode">Seats</span>
         <span className="segmented" role="radiogroup" aria-label={`How hard ${displayCode(code)} is to get into`}>
           {([0, 1, 2] as const).map((d) => (
             <button key={d} role="radio" aria-checked={(state.difficulty[code] ?? 0) === d} className={(state.difficulty[code] ?? 0) === d ? 'on' : ''}
@@ -282,8 +282,15 @@ function Group({ g, index, props, patch, remove }: { g: ChoiceGroup; index: numb
           <span>of {g.options.length}</span>
         </span>
         <span className="ops">
+          {!g.ranked && (
+            <button className={`btn ghost sm flex-btn${g.flexible ? ' on' : ''}`} role="switch" aria-checked={!!g.flexible}
+              title={g.flexible ? 'Flexible: in availability mode every option\'s sections stay open and the plan maximises the total open across the group. Click to plan N picks instead.' : 'Flexible: keep every option open and pick at registration (availability mode).'}
+              onClick={() => patch((x) => ({ ...x, flexible: !x.flexible }))}>
+              <Icon name="sliders" size={12} /> Flex
+            </button>
+          )}
           <button className={`btn ghost sm${g.ranked ? ' on' : ''}`} role="switch" aria-checked={!!g.ranked} title={g.ranked ? 'Ranked: a lower option is used only when no schedule fits a higher one. Drag to reorder.' : 'Equal: options are interchangeable. Click to rank them.'}
-            onClick={() => patch((x) => ({ ...x, ranked: !x.ranked }))}>
+            onClick={() => patch((x) => ({ ...x, ranked: !x.ranked, flexible: x.ranked ? x.flexible : false }))}>
             <Icon name={g.ranked ? 'sliders' : 'equal'} size={12} /> {g.ranked ? 'Ranked' : 'Equal'}
           </button>
           <button className="icon-btn" title="Remove group" onClick={remove}><Icon name="x" size={13} /></button>

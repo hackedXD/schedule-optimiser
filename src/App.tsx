@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Catalog, CourseDetail, FceRecord, InstructorFces, Plan, RankedSchedule, Request, SeatLookup, Staffing } from './engine/index.ts'
-import { applyRankedGroups, compareVectors, conflictingPairs, displayCode, hardOrderOf, pairingsFrom, parseSocHtml, planAvailability, preferenceCost, rank, seatOf, semesterCode, solve, staffingFromSio, surnameKey } from './engine/index.ts'
+import { applyRankedGroups, compareVectors, conflictingPairs, displayCode, openTierKeys, pairingsFrom, parseSocHtml, planAvailability, preferenceCost, rank, seatOf, semesterCode, solve, staffingFromSio, surnameKey } from './engine/index.ts'
 import { PLACES, defaultBuilding } from './campus.ts'
 import { courseColor } from './colors.ts'
 import { usePersistentState } from './state.ts'
@@ -176,7 +176,7 @@ export default function App() {
     for (const [code, v] of Object.entries(state.sio)) for (const r of v.rows) m[`${code}:${r.label}`] = seatOf(r)
     return (id) => m[id]
   }, [state.sio])
-  const hardOrder = useMemo(() => hardOrderOf([...new Set(allCodes)], state.difficulty), [allCodes, state.difficulty])
+  const hardOrder = useMemo(() => openTierKeys(request, state.difficulty), [request, state.difficulty])
   const planning = state.availabilityMode && hardOrder.length > 0
 
   // Availability-first: plans (easy picks fixed, hard courses kept open), ordered by their guarantee vector first.
@@ -208,7 +208,7 @@ export default function App() {
     const p = planById.get(id)
     if (!p || !p.open.length) return null
     const o = p.open[0]
-    return { text: `${Math.round(o.guaranteed)}/${o.total}`, title: p.open.map((x) => `${displayCode(x.course)}: ${x.guaranteed.toFixed(1)} of ${x.total} options guaranteed open${x.best !== x.guaranteed ? ` (up to ${x.best.toFixed(1)})` : ''}`).join('\n') }
+    return { text: `${Math.round(o.guaranteed)}/${o.total}`, title: p.open.map((x) => `${x.label}: ${x.guaranteed.toFixed(1)} of ${x.total} options guaranteed open${x.best !== x.guaranteed ? ` (up to ${x.best.toFixed(1)})` : ''}`).join('\n') }
   }, [planById])
   useEffect(() => { if (selected && selected.id !== selectedId) setSelectedId(selected.id) }, [selected, selectedId])
 
@@ -265,7 +265,7 @@ export default function App() {
           <div className="empty">
             <div className="box">
               <h3>{planResult ? 'No plan keeps every hard course open' : 'No schedule fits'}</h3>
-              {planResult && planResult.unplaceable.length > 0 && <p>{planResult.unplaceable.map(displayCode).join(', ')} {planResult.unplaceable.length === 1 ? 'has' : 'have'} no takeable section after your filters.</p>}
+              {planResult && planResult.unplaceable.length > 0 && <p>{planResult.unplaceable.map((k) => (/^\d{5}$/.test(k) ? displayCode(k) : 'a flexible group')).join(', ')} {planResult.unplaceable.length === 1 ? 'has' : 'have'} no takeable section after your filters.</p>}
               {result.missing.length > 0 && <p>{result.missing.map(displayCode).join(', ')} {result.missing.length === 1 ? 'is' : 'are'} not offered this semester.</p>}
               {result.unplaceable.length > 0 && <p>{result.unplaceable.map(displayCode).join(', ')} {result.unplaceable.length === 1 ? 'has' : 'have'} no section with scheduled times after your filters.</p>}
               {pairs.length > 0 && (

@@ -17,7 +17,7 @@ describe('availability planning', () => {
     const p = r.plans[0]
     expect(p.fixed.every((s) => s.course === '18100')).toBe(true)
     expect(p.open).toHaveLength(1)
-    expect(p.open[0].course).toBe('15122')
+    expect(p.open[0].key).toBe('15122')
     expect(p.open[0].options.length).toBeGreaterThan(0)
     expect(p.open[0].options.length).toBeLessThanOrEqual(p.open[0].total)
     // Every open option really fits the fixed picks.
@@ -35,7 +35,7 @@ describe('availability planning', () => {
     const r = planAvailability(catalog, req, {}, {}, { '15122': 2, '21241': 1 })
     expect(r.hardOrder).toEqual(['15122', '21241'])
     const p = r.plans[0]
-    expect(p.open.map((o) => o.course)).toEqual(['15122', '21241'])
+    expect(p.open.map((o) => o.key)).toEqual(['15122', '21241'])
     expect(p.open[1].guaranteed).toBeLessThanOrEqual(p.open[1].best)
     expect(p.vector).toHaveLength(2)
     expect(p.preferred.slots.length).toBeGreaterThan(p.fixed.length)
@@ -45,6 +45,21 @@ describe('availability planning', () => {
     expect(r.hardOrder).toEqual([])
     expect(r.plans.length).toBe(solve(catalog, { ...base, required: ['21241', '18213'] }, {}).schedules.length)
     expect(r.plans[0].open).toEqual([])
+  })
+  it('a flexible Equal group is one tier whose options span all its courses', () => {
+    const req: Request = { ...base, required: ['21241'], groups: [{ id: 'g', pick: 1, options: ['17200', '10335', '73102'], flexible: true }] }
+    const r = planAvailability(catalog, req, {}, {}, {})
+    expect(r.hardOrder).toEqual(['g'])
+    const p = r.plans[0]
+    expect(p.fixed.every((s) => s.course === '21241')).toBe(true)
+    expect(p.open[0].courses.sort()).toEqual(['10335', '17200', '73102'])
+    expect(new Set(p.open[0].options.map((o) => o.course)).size).toBeGreaterThan(1)
+    expect(p.open[0].label).toBe('pick 1 of 3')
+    expect(p.preferred.courses).toHaveLength(2)
+    expect(p.courses.sort()).toEqual(['10335', '17200', '21241', '73102'])
+    // A ranked group is never flexible.
+    const ranked = planAvailability(catalog, { ...req, groups: [{ ...req.groups[0], ranked: true }] }, {}, {}, {})
+    expect(ranked.hardOrder).toEqual([])
   })
   it('seat weights favour open seats', () => {
     expect(seatWeight({ state: 'available' })).toBe(1)

@@ -52,8 +52,8 @@ export function RankHead({ schedule, total, order, onStep, plan }: Props) {
       </div>
       <div className="readouts">
         {plan && plan.open.map((o) => (
-          <div className="readout lead open" key={o.course} title={`${displayCode(o.course)}: ${o.guaranteed.toFixed(1)} of ${o.total} lecture+section options guaranteed open${o.best !== o.guaranteed ? `, up to ${o.best.toFixed(1)} depending on harder courses` : ''}`}>
-            <span className="k"><span className="pri num">∗</span>OPEN {displayCode(o.course)}</span>
+          <div className="readout lead open" key={o.key} title={`${o.label}${o.courses.length > 1 ? ` (${o.courses.map(displayCode).join(', ')})` : ''}: ${o.guaranteed.toFixed(1)} of ${o.total} lecture+section options guaranteed open${o.best !== o.guaranteed ? `, up to ${o.best.toFixed(1)} depending on harder courses` : ''}`}>
+            <span className="k"><span className="pri num">∗</span>OPEN {o.label}</span>
             <span className="v num">{Math.round(o.guaranteed)}<span className="sub">of {o.total}</span></span>
           </div>
         ))}

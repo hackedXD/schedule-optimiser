@@ -47,6 +47,8 @@ export interface ChoiceGroup {
   /** In display order; when `ranked`, earlier options are preferred. */
   options: string[]
   ranked?: boolean
+  /** Availability mode: keep every option's sections open and pick at registration (Equal groups only). */
+  flexible?: boolean
 }
 
 export interface Request {

@@ -48,13 +48,13 @@ export function CriteriaPanel({ order, onChange, pittsburghOnly, includeMini, on
       <section className="section">
         <div className="section-head">
           <h2>Availability</h2>
-          <span className="meta">{hardCount ? `${hardCount} hard course${hardCount === 1 ? '' : 's'}` : 'none marked hard'}</span>
+          <span className="meta">{hardCount ? `${hardCount} open tier${hardCount === 1 ? '' : 's'}` : 'nothing marked hard or flexible'}</span>
         </div>
         <button className="toggle" style={{ width: '100%' }} role="switch" aria-checked={availabilityMode} onClick={() => onAvailabilityMode(!availabilityMode)}>
           <span>Maximise chances of getting in</span><span className="switch" aria-checked={availabilityMode} />
         </button>
         <p className="help">
-          Mark courses as hard to get in their expanded row. With this on, the optimiser commits only to easy courses' sections and keeps every hard course's lecture and section options open, hardest first: plans are ordered by how many options stay open (guaranteed whatever you end up with in harder courses), and only then by the criteria below. With an SIO import, open seats count fully, waitlists half, closed sections a little.
+          Mark courses as hard to get in their expanded row. With this on, the optimiser commits only to easy courses' sections and keeps every hard course's lecture and section options open, hardest first: plans are ordered by how many options stay open (guaranteed whatever you end up with in harder courses), and only then by the criteria below. An Equal group marked Flexible is one tier: every option's sections stay open and the plan maximises the total open across the group. With an SIO import, open seats count fully, waitlists half, closed sections a little.
         </p>
       </section>
       <section className="section">

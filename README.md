@@ -74,6 +74,10 @@ lecture+section options open:
 - Interchangeable sections count separately: each is a seat to try for.
 - With an SIO import, open seats count 1, waitlisted 0.5, closed 0.15, so plans
   that keep seats open beat plans that keep only waitlists open.
+- An Equal group can be marked **Flex**: the whole group becomes one open tier.
+  No course from it is committed; the plan keeps every option's sections open
+  and maximises the total open across the group, so at registration you take
+  whichever course and section you can get. Ranked groups cannot be flexible.
 - The grid draws the open options as dashed ghosts behind the preferred pick;
   the register strip lists them in the order to try, with seat state when known.
 
