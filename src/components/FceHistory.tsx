@@ -12,11 +12,13 @@ interface Props {
   current: number | undefined
   /** Apply an instructor's overall-teaching score as the rating. */
   onApply: (value: number, instructor: string) => void
+  /** Shorter list in a scroll box (dialog). */
+  compact?: boolean
 }
 
 const RECENT_YEARS = 3
 
-export function FceHistory({ records, status, current, onApply }: Props) {
+export function FceHistory({ records, status, current, onApply, compact }: Props) {
   const [all, setAll] = useState(false)
   if (!records) {
     return (
@@ -34,7 +36,7 @@ export function FceHistory({ records, status, current, onApply }: Props) {
   const recent = summary.filter((s) => s.lastYear >= cutoff)
   const shown = all ? summary : recent
   return (
-    <div className="fce-history">
+    <div className={`fce-history${compact ? ' compact' : ''}`}>
       <h4>FCE history <span className="faint">via ScottyLabs · overall teaching, last 3 terms</span></h4>
       <div className="fce-rows">
         {shown.map((s) => {

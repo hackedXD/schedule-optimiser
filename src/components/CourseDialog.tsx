@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import type { Catalog, CourseDetail, FceRecord, Ratings, Slot } from '../engine/index.ts'
-import { FceHistory, type FceStatus } from './FceHistory.tsx'
-import { detailUrl, displayCode, formatMeeting } from '../engine/index.ts'
-import { About, RatingInput, type DetailStatus } from './CoursePanel.tsx'
+import type { Catalog, CourseDetail, FceRecord, Slot } from '../engine/index.ts'
+import type { FceStatus } from './FceHistory.tsx'
+import { detailUrl, displayCode } from '../engine/index.ts'
+import { CourseBody, type DetailStatus } from './CoursePanel.tsx'
+import type { AppState } from '../state.ts'
 import { Icon } from './Icon.tsx'
 
 interface Props {
@@ -14,14 +15,15 @@ interface Props {
   status: DetailStatus
   semester: string | null
   color: { fg: string }
-  ratings: Ratings
-  onRate: (key: string, value: number | undefined) => void
+  state: AppState
+  update: (f: (s: AppState) => AppState) => void
   fces: FceRecord[] | undefined
   fceStatus: FceStatus
+  counts?: { lectures: number; sections: number; paired?: boolean }
   onClose: () => void
 }
 
-export function CourseDialog({ code, catalog, slots, detail, status, semester, color, ratings, onRate, fces, fceStatus, onClose }: Props) {
+export function CourseDialog({ code, catalog, slots, detail, status, semester, color, state, update, fces, fceStatus, counts, onClose }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const d = ref.current
@@ -40,29 +42,16 @@ export function CourseDialog({ code, catalog, slots, detail, status, semester, c
             <button className="icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" size={14} /></button>
           </header>
           <div className="dialog-scroll">
-          {course && (
-            <dl className="dialog-meta">
-              <dt>Units</dt><dd>{course.units}</dd>
-              <dt>Dept</dt><dd>{course.department}</dd>
-              <dt>FCE</dt>
-              <dd className="rate-row">
-                <span>Whole course</span>
-                <RatingInput value={ratings[code]} title={`FCE rating for all of ${displayCode(code)}`} onChange={(v) => onRate(code, v)} />
-              </dd>
-              {slots.map((sl) => (
-                <span key={sl.offerings[0].id} style={{ display: 'contents' }}>
-                  <dt>{sl.kind === 'lecture' ? 'Lecture' : 'Section'}</dt>
-                  <dd className="rate-row">
-                    <span>{sl.offerings.map((o) => o.label).join(' / ')} · {sl.meetings.map(formatMeeting).join(' · ')}{sl.mini ? ` · mini ${sl.mini}` : ''}</span>
-                    <RatingInput value={ratings[sl.offerings[0].id]} title={`FCE rating for ${displayCode(code)} ${sl.offerings[0].label}`}
-                      onChange={(v) => { for (const o of sl.offerings) onRate(o.id, v) }} />
-                  </dd>
-                </span>
-              ))}
-            </dl>
-          )}
-          <FceHistory records={fces} status={fceStatus} current={ratings[code]} onApply={(v) => onRate(code, v)} />
-          <About detail={detail} status={status} code={code} semester={semester} />
+            {course && (
+              <div className="dialog-meta-line">
+                <span>{course.units} units</span><span className="dot" /><span>{course.department}</span>
+                {slots.length > 0 && <><span className="dot" /><span>Taking {slots.map((sl) => `${sl.kind === 'lecture' ? '' : 'Sec '}${sl.offerings.map((o) => o.label).join('/')}`).join(' + ')}</span></>}
+              </div>
+            )}
+            {course && (
+              <CourseBody code={code} course={course} state={state} update={update} detail={detail} detailStatus={status} semester={semester}
+                fces={fces} fceStatus={fceStatus} counts={counts} layout="dialog" taking={new Set(slots.flatMap((sl) => sl.offerings.map((o) => o.id)))} />
+            )}
           </div>
           <footer className="dialog-foot">
             <span className="faint">Esc to close</span>

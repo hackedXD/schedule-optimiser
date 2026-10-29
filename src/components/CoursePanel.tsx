@@ -68,7 +68,7 @@ export function RatingInput({ value, onChange, title }: { value: number | undefi
   )
 }
 
-function OfferingRow({ o, state, update }: { o: Offering; state: AppState; update: Props['update'] }) {
+function OfferingRow({ o, state, update, taking }: { o: Offering; state: AppState; update: Props['update']; taking?: boolean }) {
   const pinned = state.pinned.includes(o.id)
   const excluded = state.excluded.includes(o.id)
   const toggle = (key: 'pinned' | 'excluded', other: 'pinned' | 'excluded') => update((s) => {
@@ -76,7 +76,7 @@ function OfferingRow({ o, state, update }: { o: Offering; state: AppState; updat
     return { ...s, [key]: has ? s[key].filter((x) => x !== o.id) : [...s[key], o.id], [other]: s[other].filter((x) => x !== o.id) }
   })
   return (
-    <div className={`offering${excluded ? ' excluded' : ''}`}>
+    <div className={`offering${excluded ? ' excluded' : ''}${taking ? ' taking' : ''}`} title={taking ? 'In the selected schedule' : undefined}>
       <span className="label">{o.label}{o.mini ? <span className="faint" title={o.mini === 3 ? 'First mini' : 'Second mini'}> m{o.mini}</span> : null}</span>
       <span className={`when${o.tba ? ' tba' : ''}`} title={o.meetings.map(formatMeeting).join(' · ')}>
         {o.tba || !o.meetings.length ? 'TBA' : o.meetings.map(formatMeetingCompact).join(' · ')}
@@ -140,12 +140,9 @@ interface RowProps {
 }
 
 function CourseRow({ code, course, state, update, color, counts, onRemove, detail, detailStatus, semester, open, onToggle, fces, fceStatus, rank, dragProps }: RowProps) {
-  const lectures = course?.offerings.filter((o) => o.kind === 'lecture') ?? []
-  const sections = course?.offerings.filter((o) => o.kind === 'section') ?? []
   const noTimes = course && counts && counts.lectures + counts.sections === 0
   const pinnedHere = state.pinned.filter((id) => id.startsWith(`${code}:`)).length
   const excludedHere = state.excluded.filter((id) => id.startsWith(`${code}:`)).length
-  const building = state.buildings[code] ?? defaultBuilding(code)
   const onRowKey = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget) return
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (course) onToggle() }
@@ -175,31 +172,56 @@ function CourseRow({ code, course, state, update, color, counts, onRemove, detai
         </span>
       </div>
       {open && course && (
-        <div className="course-detail">
-          <About detail={detail} status={detailStatus} code={code} semester={semester} />
-          <div className="rate-all">
-            <span>Rate all</span>
-            <span className="counts">{lectures.length ? `${lectures.length} lec` : ''}{lectures.length && sections.length ? ' · ' : ''}{sections.length ? `${sections.length} sec` : ''}{counts?.paired ? <span className="tag ok" style={{ marginLeft: 6 }} title="Sections are only paired with the lecture SOC lists them under">paired</span> : null}</span>
-            <RatingInput value={state.ratings[code]} title={`FCE rating for all of ${displayCode(code)}`}
-              onChange={(v) => update((s) => { const r: Ratings = { ...s.ratings }; if (v === undefined) delete r[code]; else r[code] = v; return { ...s, ratings: r } })} />
-          </div>
-          <FceHistory records={fces} status={fceStatus} current={state.ratings[code]} onApply={(v) => update((s) => ({ ...s, ratings: { ...s.ratings, [code]: v } }))} />
-          <label className="row-field" style={{ padding: '0 0 0 8px' }}>
-            <span>Building <span className="faint">{state.buildings[code] ? '' : '(estimate)'}</span></span>
-            <select className="select" value={building ?? ''} aria-label={`Building for ${displayCode(code)}`}
-              onChange={(e) => update((s) => { const b = { ...s.buildings }; if (e.target.value) b[code] = e.target.value; else delete b[code]; return { ...s, buildings: b } })}>
-              <option value="">Unknown</option>
-              {BUILDINGS.map((b) => <option key={b.code} value={b.code}>{b.code} · {b.name}</option>)}
-            </select>
-          </label>
-          {lectures.length > 0 && (
-            <div className="offering-group"><h4>Lectures</h4>{lectures.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} />)}</div>
-          )}
-          {sections.length > 0 && (
-            <div className="offering-group"><h4>Sections</h4>{sections.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} />)}</div>
-          )}
-        </div>
+        <CourseBody code={code} course={course} state={state} update={update} detail={detail} detailStatus={detailStatus} semester={semester}
+          fces={fces} fceStatus={fceStatus} counts={counts} layout="row" />
       )}
+    </div>
+  )
+}
+
+export interface CourseBodyProps {
+  code: string; course: Course; state: AppState; update: Props['update']
+  detail: CourseDetail | undefined; detailStatus: DetailStatus; semester: string | null
+  fces: FceRecord[] | undefined; fceStatus: FceStatus
+  counts?: { lectures: number; sections: number; paired?: boolean }
+  /** Offering ids that the selected schedule takes (dialog only). */
+  taking?: Set<string>
+  /** 'row' keeps FCE history near the top; 'dialog' puts description first and a short FCE list last. */
+  layout: 'row' | 'dialog'
+}
+
+/** Everything known about a course: description, ratings, building, lectures and sections, FCE history. */
+export function CourseBody({ code, course, state, update, detail, detailStatus, semester, fces, fceStatus, counts, taking, layout }: CourseBodyProps) {
+  const lectures = course.offerings.filter((o) => o.kind === 'lecture')
+  const sections = course.offerings.filter((o) => o.kind === 'section')
+  const building = state.buildings[code] ?? defaultBuilding(code)
+  const fce = <FceHistory records={fces} status={fceStatus} current={state.ratings[code]} compact={layout === 'dialog'}
+    onApply={(v) => update((s) => ({ ...s, ratings: { ...s.ratings, [code]: v } }))} />
+  return (
+    <div className={`course-detail ${layout}`}>
+      <About detail={detail} status={detailStatus} code={code} semester={semester} />
+      {layout === 'row' && fce}
+      <div className="rate-all">
+        <span>Rate all</span>
+        <span className="counts">{lectures.length ? `${lectures.length} lec` : ''}{lectures.length && sections.length ? ' · ' : ''}{sections.length ? `${sections.length} sec` : ''}{counts?.paired ? <span className="tag ok" style={{ marginLeft: 6 }} title="Sections are only paired with the lecture SOC lists them under">paired</span> : null}</span>
+        <RatingInput value={state.ratings[code]} title={`FCE rating for all of ${displayCode(code)}`}
+          onChange={(v) => update((s) => { const r: Ratings = { ...s.ratings }; if (v === undefined) delete r[code]; else r[code] = v; return { ...s, ratings: r } })} />
+      </div>
+      <label className="row-field" style={{ padding: '0 0 0 8px' }}>
+        <span>Building <span className="faint">{state.buildings[code] ? '' : '(estimate)'}</span></span>
+        <select className="select" value={building ?? ''} aria-label={`Building for ${displayCode(code)}`}
+          onChange={(e) => update((s) => { const b = { ...s.buildings }; if (e.target.value) b[code] = e.target.value; else delete b[code]; return { ...s, buildings: b } })}>
+          <option value="">Unknown</option>
+          {BUILDINGS.map((b) => <option key={b.code} value={b.code}>{b.code} · {b.name}</option>)}
+        </select>
+      </label>
+      {lectures.length > 0 && (
+        <div className="offering-group"><h4>Lectures</h4>{lectures.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} taking={taking?.has(o.id)} />)}</div>
+      )}
+      {sections.length > 0 && (
+        <div className="offering-group"><h4>Sections</h4>{sections.map((o) => <OfferingRow key={o.id} o={o} state={state} update={update} taking={taking?.has(o.id)} />)}</div>
+      )}
+      {layout === 'dialog' && fce}
     </div>
   )
 }

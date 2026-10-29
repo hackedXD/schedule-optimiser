@@ -109,8 +109,6 @@ export default function App() {
     return () => { cancelled = true }
   }, [allCodes, catalog, fces, fceStatus])
 
-  const applyRating = useCallback((key: string, v: number | undefined) => update((s) => { const r = { ...s.ratings }; if (v === undefined) delete r[key]; else r[key] = v; return { ...s, ratings: r } }), [update])
-
   const pairings = useMemo(() => {
     const m: Record<string, CourseDetail | undefined> = {}
     for (const c of allCodes) m[c] = detailFor(c)
@@ -218,7 +216,7 @@ export default function App() {
 
       <CourseDialog code={dialogCode} catalog={catalog} slots={selected && dialogCode ? selected.slots.filter((sl) => sl.course === dialogCode) : []}
         detail={dialogCode ? detailFor(dialogCode) : undefined} status={dialogCode && semester ? detailStatus[`${semester}:${dialogCode}`] : undefined}
-        semester={semester} color={colorOf(dialogCode ?? '')} ratings={state.ratings} onRate={applyRating}
+        semester={semester} color={colorOf(dialogCode ?? '')} state={state} update={update} counts={dialogCode ? result?.slotCounts[dialogCode] : undefined}
         fces={dialogCode ? fces[dialogCode] : undefined} fceStatus={dialogCode ? fceStatus[dialogCode] : undefined}
         onClose={() => setDialogCode(null)} />
 
